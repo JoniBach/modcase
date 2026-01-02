@@ -9,7 +9,7 @@ const { hull } = hulls;
 interface ExtrusionProfile {
 	size: number;
 	length: number;
-	centerHoleRadius: number;
+	centerHoleDiameter: number;
 	outerSlotWidth: number;
 	outerSlotDepth: number;
 	innerChannelWidth: number;
@@ -22,8 +22,8 @@ interface ExtrusionProfile {
 
 const PROFILE_2020: ExtrusionProfile = {
 	size: 20,
-	length: 50,
-	centerHoleRadius: 2.095,
+	length: 20,
+	centerHoleDiameter: 4.19,
 	outerSlotWidth: 5.26,
 	outerSlotDepth: 1.5,
 	innerChannelWidth: 11.99,
@@ -112,8 +112,8 @@ function validateProfile(profile: ExtrusionProfile): void {
 	if (profile.trapezoidTopWidth > profile.size) {
 		throw new Error('Trapezoid top width too large for profile size');
 	}
-	if (profile.centerHoleRadius * 2 > profile.size) {
-		throw new Error('Center hole radius too large for profile size');
+	if (profile.centerHoleDiameter > profile.size) {
+		throw new Error('Center hole diameter too large for profile size');
 	}
 }
 
@@ -128,7 +128,7 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 	const centerHole = translate(
 		[0, 0, 0],
 		cylinder({
-			radius: profile.centerHoleRadius,
+			radius: profile.centerHoleDiameter / 2,
 			height: extrusionLength,
 			segments: 32
 		})
