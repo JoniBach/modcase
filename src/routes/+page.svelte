@@ -7,12 +7,12 @@
 
 	let viewer: any;
 	let currentGeometry: any = null;
-	let selectedModel = 'cube';
+	let selectedModel = 'extrusion2020';
 	let fileInput: HTMLInputElement;
 	let isSTLMode = false;
 
 	onMount(() => {
-		loadModel('cube');
+		loadModel('extrusion2020');
 	});
 
 	async function loadModel(modelKey: string) {
