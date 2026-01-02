@@ -5,6 +5,7 @@
 	import JscadViewer from '$lib/components/JscadViewer.svelte';
 	import { models } from '$lib/jscad/models';
 	import { loadSTLFile } from '$lib/utils/stlParser';
+	import { getProfile2020, getProfile1515, getProfile1010 } from '$lib/jscad/extrusion2020';
 	import * as THREE from 'three';
 
 	let viewer: any;
@@ -13,6 +14,7 @@
 	let fileInput: HTMLInputElement;
 	let isSTLMode = false;
 	let fromSketch = false;
+	let currentProfile: any = null;
 
 	onMount(() => {
 		// Check if we came from sketch page with geometry
@@ -49,6 +51,17 @@
 			} else {
 				currentGeometry = result;
 			}
+		}
+
+		// Load profile data if it's an extrusion model
+		if (modelKey === 'extrusion2020') {
+			currentProfile = getProfile2020();
+		} else if (modelKey === 'extrusion1515Parametric') {
+			currentProfile = getProfile1515();
+		} else if (modelKey === 'extrusion1010') {
+			currentProfile = getProfile1010();
+		} else {
+			currentProfile = null;
 		}
 	}
 
@@ -149,6 +162,46 @@
 							{model.name}
 						</button>
 					{/each}
+				</div>
+			{/if}
+
+			{#if currentProfile}
+				<div class="profile-specs">
+					<h3>Profile Specifications</h3>
+					<div class="spec-grid">
+						<div class="spec-item">
+							<span class="spec-label">Size:</span>
+							<span class="spec-value">{currentProfile.size} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Length:</span>
+							<span class="spec-value">{currentProfile.length} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Center Hole Ø:</span>
+							<span class="spec-value">{currentProfile.centerHoleDiameter} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Slot Width:</span>
+							<span class="spec-value">{currentProfile.slotWidth} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Slot Depth:</span>
+							<span class="spec-value">{currentProfile.slotDepth} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Inner Width:</span>
+							<span class="spec-value">{currentProfile.innerWidth} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Trapezoid Base:</span>
+							<span class="spec-value">{currentProfile.trapezoidBaseFromCenter} mm</span>
+						</div>
+						<div class="spec-item">
+							<span class="spec-label">Corner Radius:</span>
+							<span class="spec-value">{currentProfile.cornerRadius} mm</span>
+						</div>
+					</div>
 				</div>
 			{/if}
 
@@ -466,6 +519,56 @@
 	.info strong {
 		color: #667eea;
 		font-weight: 600;
+	}
+
+	.profile-specs {
+		margin-top: 1.5rem;
+		padding-top: 1.5rem;
+		border-top: 1px solid #333;
+	}
+
+	.profile-specs h3 {
+		margin: 0 0 1rem 0;
+		font-size: 1rem;
+		color: #aaa;
+		font-weight: 600;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+	}
+
+	.spec-grid {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.spec-item {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0.5rem 0.75rem;
+		background: #2a2a2a;
+		border-radius: 6px;
+		border: 1px solid #3a3a3a;
+		transition: all 0.2s ease;
+	}
+
+	.spec-item:hover {
+		background: #333;
+		border-color: #667eea;
+	}
+
+	.spec-label {
+		color: #aaa;
+		font-size: 0.9rem;
+		font-weight: 500;
+	}
+
+	.spec-value {
+		color: #667eea;
+		font-size: 0.9rem;
+		font-weight: 600;
+		font-family: 'Courier New', monospace;
 	}
 
 	.viewer-section {

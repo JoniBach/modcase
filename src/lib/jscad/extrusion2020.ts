@@ -207,3 +207,15 @@ export function createExtrusion1515Parametric() {
 export function createExtrusion1010() {
 	return createAluminumExtrusion(PROFILE_1010);
 }
+
+export function getProfile2020() {
+	return PROFILE_2020;
+}
+
+export function getProfile1515() {
+	return PROFILE_1515;
+}
+
+export function getProfile1010() {
+	return PROFILE_1010;
+}

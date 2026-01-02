@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { Canvas, Rect, Circle, Polygon, Line, Path, Text } from 'fabric';
+	import * as fabric from 'fabric';
 
 	export const onSketchReady: (sketchData: any) => void = () => {};
 
@@ -16,6 +17,7 @@
 	let measurementLabels: any[] = [];
 	let tempMeasurementLabel: any = null;
 	const SNAP_DISTANCE = 15;
+	let shapeLabelsMap = new Map<any, any[]>();
 
 	onMount(() => {
 		initCanvas();
@@ -43,6 +45,13 @@
 		canvas.on('mouse:down', handleMouseDown);
 		canvas.on('mouse:move', handleMouseMove);
 		canvas.on('mouse:up', handleMouseUp);
+		canvas.on('selection:created', handleSelection);
+		canvas.on('selection:updated', handleSelection);
+		canvas.on('selection:cleared', handleSelectionCleared);
+		canvas.on('object:moving', handleObjectTransform);
+		canvas.on('object:scaling', handleObjectTransform);
+		canvas.on('object:rotating', handleObjectTransform);
+		canvas.on('object:modified', handleObjectTransform);
 
 		console.log('Canvas initialized:', canvas);
 	}
@@ -268,17 +277,51 @@
 			return;
 		}
 
-		const points = polygonPoints.map((p) => ({ x: p.left! + 3, y: p.top! + 3 }));
+		// Get absolute points from the circles
+		const absolutePoints = polygonPoints.map((p) => ({
+			x: p.left! + 3,
+			y: p.top! + 3
+		}));
 
-		const polygon = new Polygon(points, {
+		// Calculate the center of the polygon
+		const centerX = absolutePoints.reduce((sum, p) => sum + p.x, 0) / absolutePoints.length;
+		const centerY = absolutePoints.reduce((sum, p) => sum + p.y, 0) / absolutePoints.length;
+
+		// Convert points to be relative to the center
+		const relativePoints = absolutePoints.map((p) => ({
+			x: p.x - centerX,
+			y: p.y - centerY
+		}));
+
+		const polygon = new Polygon(relativePoints, {
+			left: centerX,
+			top: centerY,
 			fill: 'rgba(255, 100, 100, 0.3)',
 			stroke: '#ff4a4a',
-			strokeWidth: 2
+			strokeWidth: 2,
+			objectCaching: false
 		});
+
+		// Add the closing edge label (last point to first point)
+		const lastPoint = polygonPoints[polygonPoints.length - 1];
+		const firstPoint = polygonPoints[0];
+		const x1 = lastPoint.left! + 3;
+		const y1 = lastPoint.top! + 3;
+		const x2 = firstPoint.left! + 3;
+		const y2 = firstPoint.top! + 3;
+		const closingLabel = createMeasurementLabel(x1, y1, x2, y2);
+		canvas.add(closingLabel);
+		measurementLabels.push(closingLabel);
+
+		// Store labels for this polygon (hide them initially)
+		const storedLabels = [...measurementLabels];
+		storedLabels.forEach((label) => {
+			label.set({ visible: false });
+		});
+		shapeLabelsMap.set(polygon, storedLabels);
 
 		polygonPoints.forEach((p) => canvas.remove(p));
 		polygonLines.forEach((l) => canvas.remove(l));
-		measurementLabels.forEach((label) => canvas.remove(label));
 		if (tempPolygonLine) canvas.remove(tempPolygonLine);
 		if (tempMeasurementLabel) canvas.remove(tempMeasurementLabel);
 		if (snapIndicator) canvas.remove(snapIndicator);
@@ -502,6 +545,190 @@
 		});
 
 		return text;
+	}
+
+	function handleSelection(event: any) {
+		const selected = event.selected;
+		if (!selected || selected.length === 0) return;
+
+		// Show labels for selected shapes
+		selected.forEach((obj: any) => {
+			if (shapeLabelsMap.has(obj)) {
+				const labels = shapeLabelsMap.get(obj);
+				if (labels) {
+					labels.forEach((label: any) => {
+						label.set({ visible: true });
+					});
+				}
+			} else if (obj.type === 'Polygon' || obj.type === 'polygon') {
+				// Create labels for polygons that don't have them yet
+				createLabelsForPolygon(obj);
+			} else if (obj.type === 'Rect' || obj.type === 'rect') {
+				createLabelsForRect(obj);
+			} else if (obj.type === 'Circle' || obj.type === 'circle') {
+				createLabelsForCircle(obj);
+			}
+		});
+
+		canvas.renderAll();
+	}
+
+	function handleSelectionCleared(event: any) {
+		// Hide all labels when selection is cleared
+		shapeLabelsMap.forEach((labels) => {
+			labels.forEach((label) => {
+				label.set({ visible: false });
+			});
+		});
+		canvas.renderAll();
+	}
+
+	function handleObjectTransform(event: any) {
+		const obj = event.target;
+		if (!obj) return;
+
+		// Create labels if they don't exist yet
+		if (!shapeLabelsMap.has(obj)) {
+			if (obj.type === 'Polygon' || obj.type === 'polygon') {
+				createLabelsForPolygon(obj);
+			} else if (obj.type === 'Rect' || obj.type === 'rect') {
+				createLabelsForRect(obj);
+			} else if (obj.type === 'Circle' || obj.type === 'circle') {
+				createLabelsForCircle(obj);
+			}
+			// Make labels visible since object is being transformed
+			const labels = shapeLabelsMap.get(obj);
+			if (labels) {
+				labels.forEach((label: any) => label.set({ visible: true }));
+			}
+		} else {
+			// Update labels for the transformed object
+			updateLabelsForShape(obj);
+		}
+
+		canvas.renderAll();
+	}
+
+	function updateLabelsForShape(obj: any) {
+		const labels = shapeLabelsMap.get(obj);
+		if (!labels) return;
+
+		// Remove old labels
+		labels.forEach((label) => canvas.remove(label));
+		shapeLabelsMap.delete(obj);
+
+		// Create new labels with updated positions
+		if (obj.type === 'Polygon' || obj.type === 'polygon') {
+			createLabelsForPolygon(obj);
+		} else if (obj.type === 'Rect' || obj.type === 'rect') {
+			createLabelsForRect(obj);
+		} else if (obj.type === 'Circle' || obj.type === 'circle') {
+			createLabelsForCircle(obj);
+		}
+
+		// Make sure new labels are visible if object is selected
+		const newLabels = shapeLabelsMap.get(obj);
+		if (newLabels && canvas.getActiveObject() === obj) {
+			newLabels.forEach((label) => label.set({ visible: true }));
+		}
+	}
+
+	function createLabelsForPolygon(polygon: any) {
+		const points = polygon.points || [];
+		const labels: any[] = [];
+
+		// Get the transformation matrix - this includes position, scale, rotation, etc.
+		const matrix = polygon.calcTransformMatrix();
+
+		// Include all edges including the closing edge (last point to first point)
+		for (let i = 0; i < points.length; i++) {
+			const p1 = points[i];
+			const p2 = points[(i + 1) % points.length];
+
+			// Transform points using the polygon's transformation matrix
+			const transformedP1 = fabric.util.transformPoint({ x: p1.x, y: p1.y }, matrix);
+			const transformedP2 = fabric.util.transformPoint({ x: p2.x, y: p2.y }, matrix);
+
+			const label = createMeasurementLabel(
+				transformedP1.x,
+				transformedP1.y,
+				transformedP2.x,
+				transformedP2.y
+			);
+			canvas.add(label);
+			labels.push(label);
+		}
+
+		shapeLabelsMap.set(polygon, labels);
+	}
+
+	function createLabelsForRect(rect: any) {
+		const width = rect.width || 0;
+		const height = rect.height || 0;
+
+		const labels: any[] = [];
+
+		// Get the transformation matrix
+		const matrix = rect.calcTransformMatrix();
+
+		// Define the four corners in local coordinates (relative to object's origin)
+		const corners = [
+			{ x: -width / 2, y: -height / 2 }, // top-left
+			{ x: width / 2, y: -height / 2 }, // top-right
+			{ x: width / 2, y: height / 2 }, // bottom-right
+			{ x: -width / 2, y: height / 2 } // bottom-left
+		];
+
+		// Transform all corners
+		const transformedCorners = corners.map((corner) => fabric.util.transformPoint(corner, matrix));
+
+		// Create labels for each edge
+		for (let i = 0; i < 4; i++) {
+			const p1 = transformedCorners[i];
+			const p2 = transformedCorners[(i + 1) % 4];
+
+			const label = createMeasurementLabel(p1.x, p1.y, p2.x, p2.y);
+			canvas.add(label);
+			labels.push(label);
+		}
+
+		shapeLabelsMap.set(rect, labels);
+	}
+
+	function createLabelsForCircle(circle: any) {
+		const radius = circle.radius || 0;
+
+		// Get the transformation matrix
+		const matrix = circle.calcTransformMatrix();
+
+		// Get the center point (origin is at center for circles)
+		const center = fabric.util.transformPoint({ x: 0, y: 0 }, matrix);
+
+		// Get the actual radius after scaling
+		const scaledRadius = radius * (circle.scaleX || 1);
+
+		const labels: any[] = [];
+
+		// Diameter label
+		const diameterText = `Ø ${(scaledRadius * 2).toFixed(1)}`;
+		const label = new Text(diameterText, {
+			left: center.x,
+			top: center.y - scaledRadius - 20,
+			fontSize: 12,
+			fontFamily: 'Arial',
+			fill: '#333',
+			backgroundColor: 'rgba(255, 255, 255, 0.9)',
+			padding: 3,
+			selectable: false,
+			originX: 'center',
+			originY: 'center',
+			visible: true
+		});
+
+		canvas.add(label);
+		labels.push(label);
+
+		shapeLabelsMap.set(circle, labels);
 	}
 </script>
 
