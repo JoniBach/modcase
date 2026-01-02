@@ -1,7 +1,29 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import { Canvas, Rect, Circle, Polygon, Line, Path, Text } from 'fabric';
+	import { onMount, onDestroy } from 'svelte';
+	import { Canvas, Rect, Circle, Polygon, Line, Path, Text, FabricObject } from 'fabric';
 	import * as fabric from 'fabric';
+	import { HistoryManager } from '$lib/utils/historyManager';
+	import { CONFIG } from '$lib/utils/config';
+	import {
+		MEASUREMENT_UNITS,
+		type MeasurementUnit,
+		type Point,
+		type ShapeProperties
+	} from '$lib/utils/types';
+	import {
+		formatMeasurement,
+		calculateDistance,
+		calculateMidpoint,
+		getLabelPosition,
+		calculateAngle
+	} from '$lib/utils/measurementUtils';
+	import {
+		snapToGrid,
+		snapAngleFromPoints,
+		constrainLength,
+		constrainOrthogonal,
+		isNearPoint
+	} from '$lib/utils/snapUtils';
 
 	export const onSketchReady: (sketchData: any) => void = () => {};
 
@@ -9,23 +31,67 @@
 	let canvas: Canvas;
 	let currentTool: 'select' | 'rect' | 'circle' | 'polygon' | 'path' = 'select';
 	let isDrawing = false;
+	let startPoint: Point | null = null;
+	let currentShape: any = null;
 	let currentPath: Path | null = null;
+	let pathPoints: Point[] = [];
 	let polygonPoints: Circle[] = [];
 	let polygonLines: Line[] = [];
 	let tempPolygonLine: Line | null = null;
 	let snapIndicator: Circle | null = null;
 	let measurementLabels: any[] = [];
 	let tempMeasurementLabel: any = null;
-	const SNAP_DISTANCE = 15;
 	let shapeLabelsMap = new Map<any, any[]>();
+
+	// New state variables
+	let historyManager = new HistoryManager();
+	let selectedUnit: MeasurementUnit = MEASUREMENT_UNITS[0];
+	let customScale = 1;
+	let showGrid = false;
+	let gridSpacing = CONFIG.GRID_SPACING;
+	let snapToGridEnabled = false;
+	let showDimensions = true;
+	let zoomLevel = 1;
+	let selectedObject: any = null;
+	let shapeProperties: ShapeProperties | null = null;
+	let showPropertiesPanel = true;
+	let showHelpOverlay = false;
+	let gridPattern: any = null;
+
+	// Keyboard modifiers
+	let shiftPressed = false;
+	let ctrlPressed = false;
+	let altPressed = false;
+
+	// Polygon drawing constraints
+	let polygonConstraintLength: number | null = null;
+
+	// Event listener references for cleanup
+	let keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+	let keyupHandler: ((e: KeyboardEvent) => void) | null = null;
+	let mousedownHandler: ((e: any) => void) | null = null;
+	let mousemoveHandler: ((e: any) => void) | null = null;
+	let mouseupHandler: ((e: any) => void) | null = null;
+	let selectionCreatedHandler: ((e: any) => void) | null = null;
+	let selectionUpdatedHandler: ((e: any) => void) | null = null;
+	let selectionClearedHandler: ((e: any) => void) | null = null;
+	let objectMovingHandler: ((e: any) => void) | null = null;
+	let objectScalingHandler: ((e: any) => void) | null = null;
+	let objectRotatingHandler: ((e: any) => void) | null = null;
+	let objectModifiedHandler: ((e: any) => void) | null = null;
+	let mouseOverHandler: ((e: any) => void) | null = null;
+	let mouseOutHandler: ((e: any) => void) | null = null;
 
 	onMount(() => {
 		initCanvas();
-		return () => {
-			if (canvas) {
-				canvas.dispose();
-			}
-		};
+		setupKeyboardListeners();
+	});
+
+	onDestroy(() => {
+		cleanupEventListeners();
+		if (canvas) {
+			canvas.dispose();
+		}
 	});
 
 	function initCanvas() {
@@ -36,24 +102,149 @@
 		}
 
 		canvas = new Canvas(canvasEl, {
-			width: 800,
-			height: 600,
+			width: CONFIG.CANVAS_WIDTH,
+			height: CONFIG.CANVAS_HEIGHT,
 			backgroundColor: '#f5f5f5',
 			selection: true
 		});
 
-		canvas.on('mouse:down', handleMouseDown);
-		canvas.on('mouse:move', handleMouseMove);
-		canvas.on('mouse:up', handleMouseUp);
-		canvas.on('selection:created', handleSelection);
-		canvas.on('selection:updated', handleSelection);
-		canvas.on('selection:cleared', handleSelectionCleared);
-		canvas.on('object:moving', handleObjectTransform);
-		canvas.on('object:scaling', handleObjectTransform);
-		canvas.on('object:rotating', handleObjectTransform);
-		canvas.on('object:modified', handleObjectTransform);
+		// Store event handlers for cleanup
+		mousedownHandler = handleMouseDown;
+		mousemoveHandler = handleMouseMove;
+		mouseupHandler = handleMouseUp;
+		selectionCreatedHandler = handleSelection;
+		selectionUpdatedHandler = handleSelection;
+		selectionClearedHandler = handleSelectionCleared;
+		objectMovingHandler = handleObjectTransform;
+		objectScalingHandler = handleObjectTransform;
+		objectRotatingHandler = handleObjectTransform;
+		objectModifiedHandler = handleObjectModified;
+		mouseOverHandler = handleMouseOver;
+		mouseOutHandler = handleMouseOut;
 
+		canvas.on('mouse:down', mousedownHandler);
+		canvas.on('mouse:move', mousemoveHandler);
+		canvas.on('mouse:up', mouseupHandler);
+		canvas.on('selection:created', selectionCreatedHandler);
+		canvas.on('selection:updated', selectionUpdatedHandler);
+		canvas.on('selection:cleared', selectionClearedHandler);
+		canvas.on('object:moving', objectMovingHandler);
+		canvas.on('object:scaling', objectScalingHandler);
+		canvas.on('object:rotating', objectRotatingHandler);
+		canvas.on('object:modified', objectModifiedHandler);
+		canvas.on('mouse:over', mouseOverHandler);
+		canvas.on('mouse:out', mouseOutHandler);
+
+		// Save initial state
+		saveCanvasState();
 		console.log('Canvas initialized:', canvas);
+	}
+
+	function cleanupEventListeners() {
+		if (canvas) {
+			if (mousedownHandler) canvas.off('mouse:down', mousedownHandler);
+			if (mousemoveHandler) canvas.off('mouse:move', mousemoveHandler);
+			if (mouseupHandler) canvas.off('mouse:up', mouseupHandler);
+			if (selectionCreatedHandler) canvas.off('selection:created', selectionCreatedHandler);
+			if (selectionUpdatedHandler) canvas.off('selection:updated', selectionUpdatedHandler);
+			if (selectionClearedHandler) canvas.off('selection:cleared', selectionClearedHandler);
+			if (objectMovingHandler) canvas.off('object:moving', objectMovingHandler);
+			if (objectScalingHandler) canvas.off('object:scaling', objectScalingHandler);
+			if (objectRotatingHandler) canvas.off('object:rotating', objectRotatingHandler);
+			if (objectModifiedHandler) canvas.off('object:modified', objectModifiedHandler);
+			if (mouseOverHandler) canvas.off('mouse:over', mouseOverHandler);
+			if (mouseOutHandler) canvas.off('mouse:out', mouseOutHandler);
+		}
+
+		if (keydownHandler) window.removeEventListener('keydown', keydownHandler);
+		if (keyupHandler) window.removeEventListener('keyup', keyupHandler);
+	}
+
+	function setupKeyboardListeners() {
+		keydownHandler = handleKeyDown;
+		keyupHandler = handleKeyUp;
+		window.addEventListener('keydown', keydownHandler);
+		window.addEventListener('keyup', keyupHandler);
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		// Track modifier keys
+		shiftPressed = e.shiftKey;
+		ctrlPressed = e.ctrlKey || e.metaKey;
+		altPressed = e.altKey;
+
+		// Prevent default for shortcuts
+		if (ctrlPressed) {
+			switch (e.key.toLowerCase()) {
+				case 'z':
+					e.preventDefault();
+					if (e.shiftKey) {
+						redo();
+					} else {
+						undo();
+					}
+					break;
+				case 'y':
+					e.preventDefault();
+					redo();
+					break;
+				case 'a':
+					e.preventDefault();
+					selectAll();
+					break;
+				case 'd':
+					e.preventDefault();
+					duplicateSelected();
+					break;
+			}
+		}
+
+		// Non-modifier shortcuts
+		switch (e.key) {
+			case 'Delete':
+				deleteSelected();
+				break;
+			case 'Escape':
+				deselectAll();
+				break;
+			case 'g':
+			case 'G':
+				if (!ctrlPressed) toggleGrid();
+				break;
+			case 's':
+			case 'S':
+				if (!ctrlPressed) toggleSnapToGrid();
+				break;
+			case 'd':
+			case 'D':
+				if (!ctrlPressed) toggleDimensions();
+				break;
+			case '?':
+			case 'F1':
+				e.preventDefault();
+				toggleHelp();
+				break;
+		}
+	}
+
+	function handleKeyUp(e: KeyboardEvent) {
+		shiftPressed = e.shiftKey;
+		ctrlPressed = e.ctrlKey || e.metaKey;
+		altPressed = e.altKey;
+	}
+
+	function handleMouseOver(e: any) {
+		if (e.target && currentTool === 'select') {
+			e.target.set({ shadow: { color: CONFIG.DEFAULT_COLORS.HOVER, blur: 10 } });
+			canvas.renderAll();
+		}
+	}
+
+	function handleMouseOut(e: any) {
+		if (e.target && currentTool === 'select') {
+			e.target.set({ shadow: null });
+			canvas.renderAll();
+		}
 	}
 
 	function handleMouseDown(event: any) {
@@ -95,7 +286,9 @@
 		const pointer = event.absolutePointer || event.scenePoint || event.viewportPoint;
 		if (!pointer) return;
 
-		if (currentTool === 'polygon' && polygonPoints.length > 0) {
+		if (currentTool === 'path' && isDrawing) {
+			continueDrawingPath(pointer);
+		} else if (currentTool === 'polygon' && polygonPoints.length > 0) {
 			updateTempPolygonLine(pointer);
 			updateSnapIndicator(pointer);
 		}
@@ -109,13 +302,18 @@
 
 	function startDrawingRect(pointer: { x: number; y: number }) {
 		console.log('Drawing rect at:', pointer);
+		let pos = snapToGridEnabled ? snapToGrid(pointer, gridSpacing) : pointer;
+
+		const width = 100;
+		const height = shiftPressed ? 100 : 80;
+
 		const rect = new Rect({
-			left: pointer.x,
-			top: pointer.y,
-			width: 100,
-			height: 80,
-			fill: 'rgba(100, 150, 255, 0.3)',
-			stroke: '#4a9eff',
+			left: pos.x,
+			top: pos.y,
+			width: width,
+			height: height,
+			fill: CONFIG.DEFAULT_COLORS.RECT_FILL,
+			stroke: CONFIG.DEFAULT_COLORS.RECT_STROKE,
 			strokeWidth: 2
 		});
 		canvas.add(rect);
@@ -123,24 +321,26 @@
 		canvas.renderAll();
 		console.log('Rect added, objects:', canvas.getObjects().length);
 
-		// Switch to select tool after adding shape
+		saveCanvasState();
 		setTool('select');
 	}
 
 	function startDrawingCircle(pointer: { x: number; y: number }) {
+		let pos = snapToGridEnabled ? snapToGrid(pointer, gridSpacing) : pointer;
+
 		const circle = new Circle({
-			left: pointer.x,
-			top: pointer.y,
+			left: pos.x,
+			top: pos.y,
 			radius: 50,
-			fill: 'rgba(100, 255, 150, 0.3)',
-			stroke: '#4aff9e',
+			fill: CONFIG.DEFAULT_COLORS.CIRCLE_FILL,
+			stroke: CONFIG.DEFAULT_COLORS.CIRCLE_STROKE,
 			strokeWidth: 2
 		});
 		canvas.add(circle);
 		canvas.setActiveObject(circle);
 		canvas.renderAll();
 
-		// Switch to select tool after adding shape
+		saveCanvasState();
 		setTool('select');
 	}
 
@@ -152,7 +352,7 @@
 			const firstY = firstPoint.top! + 3;
 			const distance = Math.sqrt(Math.pow(pointer.x - firstX, 2) + Math.pow(pointer.y - firstY, 2));
 
-			if (distance < SNAP_DISTANCE) {
+			if (distance < CONFIG.SNAP_DISTANCE) {
 				// Close the polygon
 				finishPolygon();
 				return;
@@ -217,7 +417,7 @@
 			const firstY = firstPoint.top! + 3;
 			const distance = Math.sqrt(Math.pow(pointer.x - firstX, 2) + Math.pow(pointer.y - firstY, 2));
 
-			if (distance < SNAP_DISTANCE) {
+			if (distance < CONFIG.SNAP_DISTANCE) {
 				targetX = firstX;
 				targetY = firstY;
 			}
@@ -252,7 +452,7 @@
 			const firstY = firstPoint.top! + 3;
 			const distance = Math.sqrt(Math.pow(pointer.x - firstX, 2) + Math.pow(pointer.y - firstY, 2));
 
-			if (distance < SNAP_DISTANCE) {
+			if (distance < CONFIG.SNAP_DISTANCE) {
 				snapIndicator = new Circle({
 					left: firstX - 8,
 					top: firstY - 8,
@@ -338,29 +538,6 @@
 		canvas.renderAll();
 
 		// Switch to select tool after completing polygon
-		setTool('select');
-	}
-
-	function startDrawingPath(pointer: { x: number; y: number }) {
-		isDrawing = true;
-		const pathData = `M ${pointer.x} ${pointer.y}`;
-		currentPath = new Path(pathData, {
-			fill: '',
-			stroke: '#9e4aff',
-			strokeWidth: 2
-		});
-		canvas.add(currentPath);
-	}
-
-	function finishDrawingPath() {
-		isDrawing = false;
-		if (currentPath) {
-			canvas.setActiveObject(currentPath);
-			currentPath = null;
-		}
-		canvas.renderAll();
-
-		// Switch to select tool after finishing path
 		setTool('select');
 	}
 
@@ -730,6 +907,254 @@
 
 		shapeLabelsMap.set(circle, labels);
 	}
+
+	// Path drawing functions
+	function startDrawingPath(pointer: Point) {
+		isDrawing = true;
+		pathPoints = [pointer];
+		const pathData = `M ${pointer.x} ${pointer.y}`;
+		currentPath = new Path(pathData, {
+			fill: '',
+			stroke: CONFIG.DEFAULT_COLORS.PATH_STROKE,
+			strokeWidth: 2
+		});
+		canvas.add(currentPath);
+	}
+
+	function continueDrawingPath(pointer: Point) {
+		if (!currentPath || !isDrawing) return;
+
+		pathPoints.push(pointer);
+
+		// Rebuild path from all points
+		let pathData = `M ${pathPoints[0].x} ${pathPoints[0].y}`;
+		for (let i = 1; i < pathPoints.length; i++) {
+			pathData += ` L ${pathPoints[i].x} ${pathPoints[i].y}`;
+		}
+
+		currentPath.set({ path: pathData as any });
+		canvas.renderAll();
+	}
+
+	function finishDrawingPath() {
+		isDrawing = false;
+		if (currentPath) {
+			canvas.setActiveObject(currentPath);
+			currentPath = null;
+		}
+		pathPoints = [];
+		canvas.renderAll();
+		saveCanvasState();
+		setTool('select');
+	}
+
+	// History management
+	function saveCanvasState() {
+		if (!canvas) return;
+		const json = JSON.stringify(canvas.toJSON());
+		historyManager.saveState(json);
+	}
+
+	function undo() {
+		if (!canvas) return;
+		const state = historyManager.undo();
+		if (state) {
+			canvas.loadFromJSON(state.canvasJSON, () => {
+				canvas.renderAll();
+			});
+		}
+	}
+
+	function redo() {
+		if (!canvas) return;
+		const state = historyManager.redo();
+		if (state) {
+			canvas.loadFromJSON(state.canvasJSON, () => {
+				canvas.renderAll();
+			});
+		}
+	}
+
+	function handleObjectModified(event: any) {
+		saveCanvasState();
+		handleObjectTransform(event);
+	}
+
+	// Selection functions
+	function selectAll() {
+		if (!canvas) return;
+		const objects = canvas.getObjects().filter((obj) => obj.selectable !== false);
+		if (objects.length > 0) {
+			canvas.discardActiveObject();
+			const sel = new fabric.ActiveSelection(objects, { canvas });
+			canvas.setActiveObject(sel);
+			canvas.renderAll();
+		}
+	}
+
+	function deselectAll() {
+		if (!canvas) return;
+		canvas.discardActiveObject();
+		canvas.renderAll();
+	}
+
+	function duplicateSelected() {
+		if (!canvas) return;
+		const activeObject = canvas.getActiveObject();
+		if (!activeObject) return;
+
+		// Create duplicate based on object type
+		const type = activeObject.type;
+		let duplicate: any = null;
+
+		if (type === 'rect' || type === 'Rect') {
+			const rect = activeObject as Rect;
+			duplicate = new Rect({
+				left: (rect.left || 0) + 10,
+				top: (rect.top || 0) + 10,
+				width: rect.width,
+				height: rect.height,
+				fill: rect.fill,
+				stroke: rect.stroke,
+				strokeWidth: rect.strokeWidth
+			});
+		} else if (type === 'circle' || type === 'Circle') {
+			const circle = activeObject as Circle;
+			duplicate = new Circle({
+				left: (circle.left || 0) + 10,
+				top: (circle.top || 0) + 10,
+				radius: circle.radius,
+				fill: circle.fill,
+				stroke: circle.stroke,
+				strokeWidth: circle.strokeWidth
+			});
+		} else if (type === 'polygon' || type === 'Polygon') {
+			const polygon = activeObject as Polygon;
+			duplicate = new Polygon(polygon.points || [], {
+				left: (polygon.left || 0) + 10,
+				top: (polygon.top || 0) + 10,
+				fill: polygon.fill,
+				stroke: polygon.stroke,
+				strokeWidth: polygon.strokeWidth
+			});
+		}
+
+		if (duplicate) {
+			canvas.add(duplicate);
+			canvas.setActiveObject(duplicate);
+			canvas.renderAll();
+			saveCanvasState();
+		}
+	}
+
+	// Grid and snap functions
+	function toggleGrid() {
+		showGrid = !showGrid;
+		updateGridDisplay();
+	}
+
+	function toggleSnapToGrid() {
+		snapToGridEnabled = !snapToGridEnabled;
+	}
+
+	function toggleDimensions() {
+		showDimensions = !showDimensions;
+		shapeLabelsMap.forEach((labels) => {
+			labels.forEach((label) => {
+				label.set({ visible: showDimensions && label.visible });
+			});
+		});
+		canvas.renderAll();
+	}
+
+	function updateGridDisplay() {
+		if (!canvas) return;
+
+		if (showGrid) {
+			if (!gridPattern) {
+				createGridPattern();
+			}
+		} else {
+			if (gridPattern) {
+				canvas.remove(gridPattern);
+				gridPattern = null;
+			}
+		}
+		canvas.renderAll();
+	}
+
+	function createGridPattern() {
+		if (!canvas) return;
+
+		const lines: Line[] = [];
+		const width = canvas.width || CONFIG.CANVAS_WIDTH;
+		const height = canvas.height || CONFIG.CANVAS_HEIGHT;
+
+		// Vertical lines
+		for (let i = 0; i <= width; i += gridSpacing) {
+			const line = new Line([i, 0, i, height], {
+				stroke: CONFIG.DEFAULT_COLORS.GRID,
+				strokeWidth: 1,
+				selectable: false,
+				evented: false,
+				opacity: CONFIG.GRID_OPACITY
+			});
+			canvas.add(line);
+			lines.push(line);
+		}
+
+		// Horizontal lines
+		for (let i = 0; i <= height; i += gridSpacing) {
+			const line = new Line([0, i, width, i], {
+				stroke: CONFIG.DEFAULT_COLORS.GRID,
+				strokeWidth: 1,
+				selectable: false,
+				evented: false,
+				opacity: CONFIG.GRID_OPACITY
+			});
+			canvas.add(line);
+			lines.push(line);
+		}
+
+		// Grid lines are added first, so they're already at the back
+	}
+
+	// Zoom functions
+	function zoomIn() {
+		if (!canvas) return;
+		zoomLevel = Math.min(zoomLevel * 1.2, 5);
+		canvas.setZoom(zoomLevel);
+		canvas.renderAll();
+	}
+
+	function zoomOut() {
+		if (!canvas) return;
+		zoomLevel = Math.max(zoomLevel / 1.2, 0.1);
+		canvas.setZoom(zoomLevel);
+		canvas.renderAll();
+	}
+
+	function fitToScreen() {
+		if (!canvas) return;
+		zoomLevel = 1;
+		canvas.setZoom(1);
+		canvas.viewportTransform = [1, 0, 0, 1, 0, 0];
+		canvas.renderAll();
+	}
+
+	// Help overlay
+	function toggleHelp() {
+		showHelpOverlay = !showHelpOverlay;
+	}
+
+	// Update measurement unit
+	function changeUnit(unit: MeasurementUnit) {
+		selectedUnit = unit;
+		// Refresh all labels with new unit
+		shapeLabelsMap.forEach((labels, shape) => {
+			updateLabelsForShape(shape);
+		});
+	}
 </script>
 
 <div class="sketch-editor">
@@ -869,11 +1294,278 @@
 				<line x1="6" y1="6" x2="18" y2="18" />
 			</svg>
 		</button>
+
+		<div class="toolbar-divider"></div>
+
+		<!-- Undo/Redo -->
+		<button
+			class="tool-button"
+			on:click={undo}
+			disabled={!historyManager.canUndo()}
+			title="Undo (Ctrl+Z)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path d="M3 7v6h6" />
+				<path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" />
+			</svg>
+		</button>
+		<button
+			class="tool-button"
+			on:click={redo}
+			disabled={!historyManager.canRedo()}
+			title="Redo (Ctrl+Y)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path d="M21 7v6h-6" />
+				<path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" />
+			</svg>
+		</button>
+
+		<div class="toolbar-divider"></div>
+
+		<!-- Zoom Controls -->
+		<button class="tool-button" on:click={zoomOut} title="Zoom Out (-)">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<circle cx="11" cy="11" r="8" />
+				<path d="M21 21l-4.35-4.35" />
+				<line x1="8" y1="11" x2="14" y2="11" />
+			</svg>
+		</button>
+		<span class="zoom-level">{Math.round(zoomLevel * 100)}%</span>
+		<button class="tool-button" on:click={zoomIn} title="Zoom In (+)">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<circle cx="11" cy="11" r="8" />
+				<path d="M21 21l-4.35-4.35" />
+				<line x1="11" y1="8" x2="11" y2="14" />
+				<line x1="8" y1="11" x2="14" y2="11" />
+			</svg>
+		</button>
+		<button class="tool-button" on:click={fitToScreen} title="Fit to Screen">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path
+					d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"
+				/>
+			</svg>
+		</button>
+
+		<div class="toolbar-divider"></div>
+
+		<!-- Grid & Snap -->
+		<button
+			class="tool-button"
+			class:active={showGrid}
+			on:click={toggleGrid}
+			title="Toggle Grid (G)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<rect x="3" y="3" width="7" height="7" />
+				<rect x="14" y="3" width="7" height="7" />
+				<rect x="14" y="14" width="7" height="7" />
+				<rect x="3" y="14" width="7" height="7" />
+			</svg>
+		</button>
+		<button
+			class="tool-button"
+			class:active={snapToGridEnabled}
+			on:click={toggleSnapToGrid}
+			title="Snap to Grid (S)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<circle cx="12" cy="12" r="3" />
+				<path d="M12 2v4m0 12v4M2 12h4m12 0h4" />
+			</svg>
+		</button>
+		<button
+			class="tool-button"
+			class:active={showDimensions}
+			on:click={toggleDimensions}
+			title="Toggle Dimensions (D)"
+		>
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path d="M3 3v18h18" />
+				<path d="M7 12h10M12 7v10" />
+			</svg>
+		</button>
+
+		<div class="toolbar-divider"></div>
+
+		<!-- Unit Selector -->
+		<select
+			class="unit-selector"
+			bind:value={selectedUnit}
+			on:change={() => changeUnit(selectedUnit)}
+		>
+			{#each MEASUREMENT_UNITS as unit}
+				<option value={unit}>{unit.abbreviation}</option>
+			{/each}
+		</select>
+
+		<div class="toolbar-divider"></div>
+
+		<!-- Help -->
+		<button class="tool-button" on:click={toggleHelp} title="Help (F1)">
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				width="20"
+				height="20"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<circle cx="12" cy="12" r="10" />
+				<path d="M9.09 9a3 3 0 015.83 1c0 2-3 3-3 3" />
+				<line x1="12" y1="17" x2="12.01" y2="17" />
+			</svg>
+		</button>
 	</div>
 
-	<div bind:this={canvasContainer} class="canvas-container">
-		<canvas id="sketch-canvas"></canvas>
+	<div class="main-content">
+		<div bind:this={canvasContainer} class="canvas-container">
+			<canvas id="sketch-canvas"></canvas>
+		</div>
+
+		<!-- Properties Panel -->
+		{#if showPropertiesPanel && selectedObject}
+			<div class="properties-panel">
+				<div class="panel-header">
+					<h3>Properties</h3>
+					<button class="close-btn" on:click={() => (showPropertiesPanel = false)}>×</button>
+				</div>
+				<div class="panel-content">
+					<div class="property-group">
+						<label>Type</label>
+						<span class="property-value">{selectedObject.type}</span>
+					</div>
+					<!-- Add more property controls here -->
+				</div>
+			</div>
+		{/if}
 	</div>
+
+	<!-- Help Overlay -->
+	{#if showHelpOverlay}
+		<div class="help-overlay" on:click={toggleHelp}>
+			<div class="help-content" on:click|stopPropagation>
+				<h2>Keyboard Shortcuts</h2>
+				<div class="shortcuts-grid">
+					<div class="shortcut-item">
+						<kbd>Ctrl+Z</kbd>
+						<span>Undo</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Ctrl+Y</kbd>
+						<span>Redo</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Ctrl+A</kbd>
+						<span>Select All</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Ctrl+D</kbd>
+						<span>Duplicate</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Delete</kbd>
+						<span>Delete Selected</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Escape</kbd>
+						<span>Deselect</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>G</kbd>
+						<span>Toggle Grid</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>S</kbd>
+						<span>Toggle Snap</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>D</kbd>
+						<span>Toggle Dimensions</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Shift</kbd>
+						<span>Constrain (Square/Circle)</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Ctrl</kbd>
+						<span>Orthogonal Lines</span>
+					</div>
+					<div class="shortcut-item">
+						<kbd>Alt</kbd>
+						<span>Equal Length</span>
+					</div>
+				</div>
+				<button class="close-help-btn" on:click={toggleHelp}>Close</button>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>
@@ -968,5 +1660,278 @@
 		border: 2px solid #444;
 		border-radius: 8px;
 		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+	}
+
+	.tool-button:disabled {
+		opacity: 0.4;
+		cursor: not-allowed;
+	}
+
+	.tool-button:disabled:hover {
+		background: #2a2a2a;
+		border-color: #3a3a3a;
+	}
+
+	.zoom-level {
+		color: #e0e0e0;
+		font-size: 0.875rem;
+		font-weight: 500;
+		min-width: 50px;
+		text-align: center;
+	}
+
+	.unit-selector {
+		background: #2a2a2a;
+		border: 2px solid #3a3a3a;
+		color: #e0e0e0;
+		padding: 0.5rem;
+		border-radius: 6px;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 0.875rem;
+		outline: none;
+	}
+
+	.unit-selector:hover {
+		border-color: #667eea;
+	}
+
+	.unit-selector:focus {
+		border-color: #667eea;
+		box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+	}
+
+	.main-content {
+		flex: 1;
+		display: flex;
+		position: relative;
+		overflow: hidden;
+	}
+
+	.properties-panel {
+		position: absolute;
+		right: 0;
+		top: 0;
+		bottom: 0;
+		width: 300px;
+		background: rgba(26, 26, 26, 0.95);
+		backdrop-filter: blur(10px);
+		border-left: 1px solid #333;
+		box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+		z-index: 10;
+		animation: slideIn 0.2s ease;
+	}
+
+	@keyframes slideIn {
+		from {
+			transform: translateX(100%);
+		}
+		to {
+			transform: translateX(0);
+		}
+	}
+
+	.panel-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 1rem;
+		border-bottom: 1px solid #333;
+	}
+
+	.panel-header h3 {
+		margin: 0;
+		color: #e0e0e0;
+		font-size: 1rem;
+		font-weight: 600;
+	}
+
+	.close-btn {
+		background: transparent;
+		border: none;
+		color: #e0e0e0;
+		font-size: 1.5rem;
+		cursor: pointer;
+		padding: 0;
+		width: 30px;
+		height: 30px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 4px;
+		transition: all 0.2s ease;
+	}
+
+	.close-btn:hover {
+		background: #3a3a3a;
+		color: #fff;
+	}
+
+	.panel-content {
+		padding: 1rem;
+		overflow-y: auto;
+		max-height: calc(100% - 60px);
+	}
+
+	.property-group {
+		margin-bottom: 1rem;
+	}
+
+	.property-group label {
+		display: block;
+		color: #999;
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+		margin-bottom: 0.5rem;
+	}
+
+	.property-value {
+		display: block;
+		color: #e0e0e0;
+		font-size: 0.875rem;
+		padding: 0.5rem;
+		background: #2a2a2a;
+		border-radius: 4px;
+	}
+
+	.help-overlay {
+		position: fixed;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: rgba(0, 0, 0, 0.8);
+		backdrop-filter: blur(5px);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		z-index: 1000;
+		animation: fadeIn 0.2s ease;
+	}
+
+	@keyframes fadeIn {
+		from {
+			opacity: 0;
+		}
+		to {
+			opacity: 1;
+		}
+	}
+
+	.help-content {
+		background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+		border: 2px solid #667eea;
+		border-radius: 12px;
+		padding: 2rem;
+		max-width: 600px;
+		max-height: 80vh;
+		overflow-y: auto;
+		box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+		animation: scaleIn 0.2s ease;
+	}
+
+	@keyframes scaleIn {
+		from {
+			transform: scale(0.9);
+			opacity: 0;
+		}
+		to {
+			transform: scale(1);
+			opacity: 1;
+		}
+	}
+
+	.help-content h2 {
+		margin: 0 0 1.5rem 0;
+		color: #e0e0e0;
+		font-size: 1.5rem;
+		font-weight: 700;
+		text-align: center;
+	}
+
+	.shortcuts-grid {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 1rem;
+		margin-bottom: 1.5rem;
+	}
+
+	.shortcut-item {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		padding: 0.75rem;
+		background: rgba(42, 42, 42, 0.5);
+		border-radius: 6px;
+		border: 1px solid #3a3a3a;
+		transition: all 0.2s ease;
+	}
+
+	.shortcut-item:hover {
+		background: rgba(102, 126, 234, 0.1);
+		border-color: #667eea;
+	}
+
+	.shortcut-item kbd {
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		color: white;
+		padding: 0.25rem 0.5rem;
+		border-radius: 4px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		font-family: monospace;
+		min-width: 60px;
+		text-align: center;
+		box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+	}
+
+	.shortcut-item span {
+		color: #e0e0e0;
+		font-size: 0.875rem;
+	}
+
+	.close-help-btn {
+		width: 100%;
+		padding: 0.75rem;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		border: none;
+		border-radius: 6px;
+		color: white;
+		font-weight: 600;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		font-size: 1rem;
+	}
+
+	.close-help-btn:hover {
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+	}
+
+	.close-help-btn:active {
+		transform: translateY(0);
+	}
+
+	/* Responsive design */
+	@media (max-width: 768px) {
+		.toolbar {
+			flex-wrap: wrap;
+			padding: 0.5rem;
+		}
+
+		.properties-panel {
+			width: 100%;
+			max-width: 300px;
+		}
+
+		.shortcuts-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.help-content {
+			margin: 1rem;
+			padding: 1.5rem;
+		}
 	}
 </style>
