@@ -1,150 +1,156 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-	import JscadViewer from '$lib/components/JscadViewer.svelte';
-	import { models } from '$lib/jscad/models';
-	import { loadSTLFile } from '$lib/utils/stlParser';
-	import * as THREE from 'three';
+	import { goto } from '$app/navigation';
 
-	let viewer: any;
-	let currentGeometry: any = null;
-	let selectedModel = 'extrusion2020';
-	let fileInput: HTMLInputElement;
-	let isSTLMode = false;
-
-	onMount(() => {
-		loadModel('extrusion2020');
-	});
-
-	async function loadModel(modelKey: string) {
-		selectedModel = modelKey;
-		isSTLMode = false;
-		const model = models[modelKey as keyof typeof models];
-		if (model) {
-			const result = model.fn();
-			if (result instanceof Promise) {
-				currentGeometry = await result;
-			} else {
-				currentGeometry = result;
-			}
+	const features = [
+		{
+			title: '2D Sketch Editor',
+			description: 'Draw 2D shapes and extrude them into 3D models',
+			icon: 'sketch',
+			path: '/sketch',
+			color: 'from-purple-500 to-pink-500'
+		},
+		{
+			title: '3D Model Viewer',
+			description: 'View, manipulate, and export 3D models as STL files',
+			icon: 'viewer',
+			path: '/viewer',
+			color: 'from-blue-500 to-cyan-500'
 		}
-	}
+	];
 
-	function handleExport() {
-		if (viewer) {
-			const modelName = models[selectedModel as keyof typeof models]?.name || 'model';
-			const filename = `${modelName.toLowerCase().replace(/\s+/g, '_')}.stl`;
-			viewer.exportSTL(filename);
-		}
-	}
-
-	async function handleSTLImport(event: Event) {
-		const input = event.target as HTMLInputElement;
-		const file = input.files?.[0];
-
-		if (!file) return;
-
-		try {
-			const geometry = await loadSTLFile(file);
-			isSTLMode = true;
-			selectedModel = '';
-
-			if (viewer) {
-				viewer.loadSTLGeometry(geometry);
-			}
-		} catch (error) {
-			console.error('Failed to load STL file:', error);
-			alert('Failed to load STL file. Please ensure it is a valid STL file.');
-		}
-
-		input.value = '';
-	}
-
-	function triggerFileInput() {
-		fileInput?.click();
+	function navigateTo(path: string) {
+		goto(path);
 	}
 </script>
 
 <div class="container">
 	<header>
-		<h1>OpenJSCAD 3D Viewer</h1>
+		<h1>OpenJSCAD 3D Modeling</h1>
 		<p>Interactive 3D modeling with Svelte and OpenJSCAD</p>
 	</header>
 
-	<div class="main-content">
-		<aside class="sidebar">
-			<h2>Models</h2>
-			<div class="model-list">
-				{#each Object.entries(models) as [key, model]}
-					<button
-						class="model-button"
-						class:active={selectedModel === key}
-						on:click={() => loadModel(key)}
-					>
-						{model.name}
-					</button>
-				{/each}
-			</div>
+	<main class="main-content">
+		<div class="hero">
+			<h2>Welcome to OpenJSCAD 3D Modeling</h2>
+			<p class="subtitle">
+				Create 3D models from 2D sketches or explore pre-built parametric designs
+			</p>
+		</div>
 
-			<div class="export-section">
-				<input
-					type="file"
-					accept=".stl"
-					bind:this={fileInput}
-					on:change={handleSTLImport}
-					style="display: none;"
-				/>
-				<button class="import-button" on:click={triggerFileInput}>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="20"
-						height="20"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-						<polyline points="17 8 12 3 7 8" />
-						<line x1="12" y1="3" x2="12" y2="15" />
-					</svg>
-					Import STL
+		<div class="features-grid">
+			{#each features as feature}
+				<button class="feature-card" on:click={() => navigateTo(feature.path)}>
+					<div class="feature-icon {feature.icon}">
+						{#if feature.icon === 'sketch'}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="48"
+								height="48"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path d="M12 20h9" />
+								<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+							</svg>
+						{:else}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="48"
+								height="48"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"
+								/>
+							</svg>
+						{/if}
+					</div>
+					<h3>{feature.title}</h3>
+					<p>{feature.description}</p>
+					<div class="arrow">
+						<svg
+							xmlns="http://www.w3.org/2000/svg"
+							width="24"
+							height="24"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+						>
+							<line x1="5" y1="12" x2="19" y2="12" />
+							<polyline points="12 5 19 12 12 19" />
+						</svg>
+					</div>
 				</button>
-				<button class="export-button" on:click={handleExport}>
+			{/each}
+		</div>
+
+		<div class="info-section">
+			<h3>Features</h3>
+			<div class="info-grid">
+				<div class="info-item">
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
-						width="20"
-						height="20"
+						width="24"
+						height="24"
 						viewBox="0 0 24 24"
 						fill="none"
 						stroke="currentColor"
 						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
+					>
+						<polyline points="16 18 22 12 16 6" />
+						<polyline points="8 6 2 12 8 18" />
+					</svg>
+					<div>
+						<h4>Parametric Design</h4>
+						<p>Create precise, customizable 3D models</p>
+					</div>
+				</div>
+				<div class="info-item">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
 					>
 						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
 						<polyline points="7 10 12 15 17 10" />
 						<line x1="12" y1="15" x2="12" y2="3" />
 					</svg>
-					Export as STL
-				</button>
+					<div>
+						<h4>STL Export</h4>
+						<p>Export models for 3D printing</p>
+					</div>
+				</div>
+				<div class="info-item">
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="24"
+						height="24"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+					>
+						<circle cx="12" cy="12" r="10" />
+						<polyline points="12 6 12 12 16 14" />
+					</svg>
+					<div>
+						<h4>Real-time Preview</h4>
+						<p>See changes instantly in 3D</p>
+					</div>
+				</div>
 			</div>
-
-			<div class="info">
-				<h3>Controls</h3>
-				<ul>
-					<li><strong>Left Mouse:</strong> Rotate</li>
-					<li><strong>Right Mouse:</strong> Pan</li>
-					<li><strong>Scroll:</strong> Zoom</li>
-				</ul>
-			</div>
-		</aside>
-
-		<main class="viewer-section">
-			<JscadViewer bind:this={viewer} geometry={currentGeometry} />
-		</main>
-	</div>
+		</div>
+	</main>
 </div>
 
 <style>
@@ -160,195 +166,204 @@
 	.container {
 		display: flex;
 		flex-direction: column;
-		height: 100vh;
-		overflow: hidden;
+		min-height: 100vh;
 	}
 
 	header {
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		padding: 1.5rem 2rem;
+		padding: 2rem;
 		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+		text-align: center;
 	}
 
 	header h1 {
 		margin: 0;
-		font-size: 2rem;
+		font-size: 2.5rem;
 		font-weight: 700;
 		color: white;
 	}
 
 	header p {
 		margin: 0.5rem 0 0 0;
-		font-size: 1rem;
+		font-size: 1.1rem;
 		color: rgba(255, 255, 255, 0.9);
 	}
 
 	.main-content {
-		display: flex;
 		flex: 1;
-		overflow: hidden;
+		max-width: 1200px;
+		width: 100%;
+		margin: 0 auto;
+		padding: 3rem 2rem;
 	}
 
-	.sidebar {
-		width: 280px;
-		background: #1a1a1a;
-		padding: 1.5rem;
-		overflow-y: auto;
-		border-right: 1px solid #333;
+	.hero {
+		text-align: center;
+		margin-bottom: 4rem;
 	}
 
-	.sidebar h2 {
+	.hero h2 {
+		font-size: 2.5rem;
 		margin: 0 0 1rem 0;
-		font-size: 1.25rem;
-		color: #fff;
-		font-weight: 600;
-	}
-
-	.sidebar h3 {
-		margin: 2rem 0 0.75rem 0;
-		font-size: 1rem;
-		color: #aaa;
-		font-weight: 600;
-		text-transform: uppercase;
-		letter-spacing: 0.5px;
-	}
-
-	.model-list {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-	}
-
-	.model-button {
-		background: #2a2a2a;
-		border: 2px solid #3a3a3a;
-		color: #e0e0e0;
-		padding: 0.75rem 1rem;
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: 0.95rem;
-		font-weight: 500;
-		transition: all 0.2s ease;
-		text-align: left;
-	}
-
-	.model-button:hover {
-		background: #3a3a3a;
-		border-color: #667eea;
-		transform: translateX(4px);
-	}
-
-	.model-button.active {
 		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		border-color: #667eea;
-		color: white;
-		font-weight: 600;
+		-webkit-background-clip: text;
+		-webkit-text-fill-color: transparent;
+		background-clip: text;
 	}
 
-	.export-section {
-		margin-top: 1.5rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid #333;
-		display: flex;
-		flex-direction: column;
-		gap: 0.75rem;
-	}
-
-	.import-button {
-		width: 100%;
-		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-		border: none;
-		color: white;
-		padding: 0.875rem 1rem;
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: 0.95rem;
-		font-weight: 600;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-	}
-
-	.import-button:hover {
-		background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-	}
-
-	.import-button:active {
-		transform: translateY(0);
-	}
-
-	.export-button {
-		width: 100%;
-		background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-		border: none;
-		color: white;
-		padding: 0.875rem 1rem;
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: 0.95rem;
-		font-weight: 600;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-	}
-
-	.export-button:hover {
-		background: linear-gradient(135deg, #059669 0%, #047857 100%);
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
-	}
-
-	.export-button:active {
-		transform: translateY(0);
-	}
-
-	.info {
-		margin-top: 2rem;
-		padding-top: 1.5rem;
-		border-top: 1px solid #333;
-	}
-
-	.info ul {
-		list-style: none;
-		padding: 0;
+	.subtitle {
+		font-size: 1.2rem;
+		color: #aaa;
 		margin: 0;
 	}
 
-	.info li {
-		padding: 0.5rem 0;
-		color: #aaa;
-		font-size: 0.9rem;
-		line-height: 1.5;
+	.features-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+		gap: 2rem;
+		margin-bottom: 4rem;
 	}
 
-	.info strong {
-		color: #667eea;
-		font-weight: 600;
-	}
-
-	.viewer-section {
-		flex: 1;
-		background: #1a1a1a;
+	.feature-card {
+		background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+		border: 2px solid #3a3a3a;
+		border-radius: 16px;
+		padding: 2.5rem;
+		cursor: pointer;
+		transition: all 0.3s ease;
+		text-align: center;
 		position: relative;
 		overflow: hidden;
 	}
 
+	.feature-card::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		height: 4px;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+		opacity: 0;
+		transition: opacity 0.3s ease;
+	}
+
+	.feature-card:hover {
+		transform: translateY(-8px);
+		border-color: #667eea;
+		box-shadow: 0 12px 24px rgba(102, 126, 234, 0.3);
+	}
+
+	.feature-card:hover::before {
+		opacity: 1;
+	}
+
+	.feature-icon {
+		width: 80px;
+		height: 80px;
+		margin: 0 auto 1.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+	}
+
+	.feature-icon svg {
+		color: #667eea;
+	}
+
+	.feature-card h3 {
+		margin: 0 0 1rem 0;
+		font-size: 1.5rem;
+		color: white;
+	}
+
+	.feature-card p {
+		margin: 0 0 1.5rem 0;
+		color: #aaa;
+		font-size: 1rem;
+		line-height: 1.6;
+	}
+
+	.arrow {
+		display: flex;
+		justify-content: center;
+		opacity: 0.5;
+		transition: all 0.3s ease;
+	}
+
+	.feature-card:hover .arrow {
+		opacity: 1;
+		transform: translateX(4px);
+	}
+
+	.arrow svg {
+		color: #667eea;
+	}
+
+	.info-section {
+		background: #1a1a1a;
+		border: 2px solid #3a3a3a;
+		border-radius: 16px;
+		padding: 2.5rem;
+	}
+
+	.info-section h3 {
+		margin: 0 0 2rem 0;
+		font-size: 1.8rem;
+		text-align: center;
+		color: white;
+	}
+
+	.info-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+		gap: 2rem;
+	}
+
+	.info-item {
+		display: flex;
+		gap: 1rem;
+		align-items: flex-start;
+	}
+
+	.info-item svg {
+		flex-shrink: 0;
+		color: #667eea;
+	}
+
+	.info-item h4 {
+		margin: 0 0 0.5rem 0;
+		font-size: 1.1rem;
+		color: white;
+	}
+
+	.info-item p {
+		margin: 0;
+		color: #aaa;
+		font-size: 0.95rem;
+	}
+
 	@media (max-width: 768px) {
-		.main-content {
-			flex-direction: column;
+		header h1 {
+			font-size: 2rem;
 		}
 
-		.sidebar {
-			width: 100%;
-			max-height: 40vh;
-			border-right: none;
-			border-bottom: 1px solid #333;
+		.hero h2 {
+			font-size: 2rem;
+		}
+
+		.subtitle {
+			font-size: 1rem;
+		}
+
+		.features-grid {
+			grid-template-columns: 1fr;
+		}
+
+		.info-grid {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>
