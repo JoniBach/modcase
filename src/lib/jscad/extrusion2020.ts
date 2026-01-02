@@ -10,12 +10,9 @@ interface ExtrusionProfile {
 	size: number;
 	length: number;
 	centerHoleDiameter: number;
-	outerSlotWidth: number;
-	outerSlotDepth: number;
-	innerChannelWidth: number;
-	innerChannelDepth: number;
-	trapezoidTopWidth: number;
-	trapezoidBottomWidth: number;
+	slotWidth: number;
+	slotDepth: number;
+	innerWidth: number;
 	trapezoidBaseFromCenter: number;
 	cornerRadius: number;
 }
@@ -24,12 +21,9 @@ const PROFILE_2020: ExtrusionProfile = {
 	size: 20,
 	length: 20,
 	centerHoleDiameter: 4.19,
-	outerSlotWidth: 5.26,
-	trapezoidBottomWidth: 5.26,
-	outerSlotDepth: 1.5,
-	innerChannelDepth: 1.5,
-	innerChannelWidth: 11.99,
-	trapezoidTopWidth: 11.99,
+	slotWidth: 5.26,
+	slotDepth: 1.5,
+	innerWidth: 11.99,
 	trapezoidBaseFromCenter: 6.34,
 	cornerRadius: 1.0
 };
@@ -38,12 +32,9 @@ const PROFILE_1010: ExtrusionProfile = {
 	size: 10,
 	length: 10,
 	centerHoleDiameter: 2,
-	outerSlotWidth: 2.56,
-	trapezoidBottomWidth: 2.56,
-	outerSlotDepth: 0.87,
-	innerChannelDepth: 0.87,
-	innerChannelWidth: 5.5,
-	trapezoidTopWidth: 5.5,
+	slotWidth: 2.56,
+	slotDepth: 0.87,
+	innerWidth: 5.5,
 	trapezoidBaseFromCenter: 3.23,
 	cornerRadius: 1.0
 };
@@ -114,17 +105,14 @@ function createRoundedCorners(size: number, cornerRadius: number, extrusionLengt
 }
 
 function validateProfile(profile: ExtrusionProfile): void {
-	if (profile.outerSlotDepth > profile.size / 2) {
-		throw new Error('Outer slot depth too large for profile size');
-	}
-	if (profile.innerChannelDepth > profile.size / 2) {
-		throw new Error('Inner channel depth too large for profile size');
+	if (profile.slotDepth > profile.size / 2) {
+		throw new Error('Slot depth too large for profile size');
 	}
 	if (profile.cornerRadius * 2 > profile.size) {
 		throw new Error('Corner radius too large for profile size');
 	}
-	if (profile.trapezoidTopWidth > profile.size) {
-		throw new Error('Trapezoid top width too large for profile size');
+	if (profile.innerWidth > profile.size) {
+		throw new Error('Inner width too large for profile size');
 	}
 	if (profile.centerHoleDiameter > profile.size) {
 		throw new Error('Center hole diameter too large for profile size');
@@ -148,9 +136,9 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 		})
 	);
 
-	const outerSlotPos = halfSize - profile.outerSlotDepth / 2;
-	const innerChannelPos = halfSize - profile.outerSlotDepth - profile.innerChannelDepth / 2;
-	const faceInset = profile.outerSlotDepth + profile.innerChannelDepth;
+	const outerSlotPos = halfSize - profile.slotDepth / 2;
+	const innerChannelPos = halfSize - profile.slotDepth - profile.slotDepth / 2;
+	const faceInset = profile.slotDepth + profile.slotDepth;
 	const trapOuterPos = halfSize - faceInset;
 	const trapInnerPos = halfSize - profile.trapezoidBaseFromCenter;
 
@@ -163,8 +151,8 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 		directions.forEach((dir) => {
 			cutouts.push(
 				createRectangularSlot(
-					profile.outerSlotWidth,
-					profile.outerSlotDepth,
+					profile.slotWidth,
+					profile.slotDepth,
 					extrusionLength,
 					dir * outerSlotPos,
 					axis
@@ -172,8 +160,8 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 			);
 			cutouts.push(
 				createRectangularSlot(
-					profile.innerChannelWidth,
-					profile.innerChannelDepth,
+					profile.innerWidth,
+					profile.slotDepth,
 					extrusionLength,
 					dir * innerChannelPos,
 					axis
@@ -181,8 +169,8 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 			);
 			cutouts.push(
 				createTrapezoidSlot(
-					profile.trapezoidTopWidth,
-					profile.trapezoidBottomWidth,
+					profile.innerWidth,
+					profile.slotWidth,
 					extrusionLength,
 					dir * trapOuterPos,
 					dir * trapInnerPos,
@@ -198,6 +186,9 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 }
 
 export function createExtrusion2020() {
-	// return createAluminumExtrusion(PROFILE_1010);
 	return createAluminumExtrusion(PROFILE_2020);
+}
+
+export function createExtrusion1010() {
+	return createAluminumExtrusion(PROFILE_1010);
 }

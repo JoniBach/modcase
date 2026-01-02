@@ -1,6 +1,6 @@
 import pkg from '@jscad/modeling';
 import { createExtrusion1515 } from './extrusion1515';
-import { createExtrusion2020 } from './extrusion2020';
+import { createExtrusion2020, createExtrusion1010 } from './extrusion2020';
 
 const { primitives, booleans, transforms, extrusions, colors } = pkg;
 
@@ -118,6 +118,7 @@ export const models = {
 	gear: { name: 'Gear', fn: createGear },
 	house: { name: 'House', fn: createHouse },
 	bolt: { name: 'Bolt', fn: createBolt },
+	extrusion1010: { name: 'Extrusion 1010', fn: createExtrusion1010 },
 	extrusion1515: { name: 'Extrusion 1515 (STL)', fn: createExtrusion1515 },
 	extrusion2020: { name: 'Extrusion 2020', fn: createExtrusion2020 }
 };
