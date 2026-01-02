@@ -39,6 +39,17 @@ const PROFILE_1010: ExtrusionProfile = {
 	cornerRadius: 1.0
 };
 
+const PROFILE_1515: ExtrusionProfile = {
+	size: 15,
+	length: 15,
+	centerHoleDiameter: 3.2,
+	slotWidth: 3.5,
+	slotDepth: 1.18,
+	innerWidth: 8.24,
+	trapezoidBaseFromCenter: 4.78,
+	cornerRadius: 1.0
+};
+
 function createRectangularSlot(
 	width: number,
 	depth: number,
@@ -187,6 +198,10 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 
 export function createExtrusion2020() {
 	return createAluminumExtrusion(PROFILE_2020);
+}
+
+export function createExtrusion1515Parametric() {
+	return createAluminumExtrusion(PROFILE_1515);
 }
 
 export function createExtrusion1010() {
