@@ -25,12 +25,26 @@ const PROFILE_2020: ExtrusionProfile = {
 	length: 20,
 	centerHoleDiameter: 4.19,
 	outerSlotWidth: 5.26,
-	outerSlotDepth: 1.5,
-	innerChannelWidth: 11.99,
-	innerChannelDepth: 1.5,
-	trapezoidTopWidth: 11.99,
 	trapezoidBottomWidth: 5.26,
+	outerSlotDepth: 1.5,
+	innerChannelDepth: 1.5,
+	innerChannelWidth: 11.99,
+	trapezoidTopWidth: 11.99,
 	trapezoidBaseFromCenter: 6.34,
+	cornerRadius: 1.0
+};
+
+const PROFILE_1010: ExtrusionProfile = {
+	size: 10,
+	length: 10,
+	centerHoleDiameter: 2,
+	outerSlotWidth: 2.56,
+	trapezoidBottomWidth: 2.56,
+	outerSlotDepth: 0.87,
+	innerChannelDepth: 0.87,
+	innerChannelWidth: 5.5,
+	trapezoidTopWidth: 5.5,
+	trapezoidBaseFromCenter: 3.23,
 	cornerRadius: 1.0
 };
 
@@ -184,5 +198,6 @@ function createAluminumExtrusion(profile: ExtrusionProfile): any {
 }
 
 export function createExtrusion2020() {
+	// return createAluminumExtrusion(PROFILE_1010);
 	return createAluminumExtrusion(PROFILE_2020);
 }
