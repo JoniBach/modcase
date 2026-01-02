@@ -1,4 +1,6 @@
 import pkg from '@jscad/modeling';
+import { createExtrusion1515 } from './extrusion1515';
+
 const { primitives, booleans, transforms, extrusions, colors } = pkg;
 
 const { cube, sphere, cylinder, cuboid, cylinderElliptic } = primitives;
@@ -114,5 +116,6 @@ export const models = {
 	complex: { name: 'Complex Shape', fn: createComplexShape },
 	gear: { name: 'Gear', fn: createGear },
 	house: { name: 'House', fn: createHouse },
-	bolt: { name: 'Bolt', fn: createBolt }
+	bolt: { name: 'Bolt', fn: createBolt },
+	extrusion1515: { name: 'Extrusion 1515 (STL)', fn: createExtrusion1515 }
 };

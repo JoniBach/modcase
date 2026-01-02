@@ -2,20 +2,30 @@
 	import { onMount } from 'svelte';
 	import JscadViewer from '$lib/components/JscadViewer.svelte';
 	import { models } from '$lib/jscad/models';
+	import { loadSTLFile } from '$lib/utils/stlParser';
+	import * as THREE from 'three';
 
 	let viewer: any;
 	let currentGeometry: any = null;
 	let selectedModel = 'cube';
+	let fileInput: HTMLInputElement;
+	let isSTLMode = false;
 
 	onMount(() => {
 		loadModel('cube');
 	});
 
-	function loadModel(modelKey: string) {
+	async function loadModel(modelKey: string) {
 		selectedModel = modelKey;
+		isSTLMode = false;
 		const model = models[modelKey as keyof typeof models];
 		if (model) {
-			currentGeometry = model.fn();
+			const result = model.fn();
+			if (result instanceof Promise) {
+				currentGeometry = await result;
+			} else {
+				currentGeometry = result;
+			}
 		}
 	}
 
@@ -25,6 +35,32 @@
 			const filename = `${modelName.toLowerCase().replace(/\s+/g, '_')}.stl`;
 			viewer.exportSTL(filename);
 		}
+	}
+
+	async function handleSTLImport(event: Event) {
+		const input = event.target as HTMLInputElement;
+		const file = input.files?.[0];
+
+		if (!file) return;
+
+		try {
+			const geometry = await loadSTLFile(file);
+			isSTLMode = true;
+			selectedModel = '';
+
+			if (viewer) {
+				viewer.loadSTLGeometry(geometry);
+			}
+		} catch (error) {
+			console.error('Failed to load STL file:', error);
+			alert('Failed to load STL file. Please ensure it is a valid STL file.');
+		}
+
+		input.value = '';
+	}
+
+	function triggerFileInput() {
+		fileInput?.click();
 	}
 </script>
 
@@ -50,6 +86,31 @@
 			</div>
 
 			<div class="export-section">
+				<input
+					type="file"
+					accept=".stl"
+					bind:this={fileInput}
+					on:change={handleSTLImport}
+					style="display: none;"
+				/>
+				<button class="import-button" on:click={triggerFileInput}>
+					<svg
+						xmlns="http://www.w3.org/2000/svg"
+						width="20"
+						height="20"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+						<polyline points="17 8 12 3 7 8" />
+						<line x1="12" y1="3" x2="12" y2="15" />
+					</svg>
+					Import STL
+				</button>
 				<button class="export-button" on:click={handleExport}>
 					<svg
 						xmlns="http://www.w3.org/2000/svg"
@@ -188,6 +249,36 @@
 		margin-top: 1.5rem;
 		padding-top: 1.5rem;
 		border-top: 1px solid #333;
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+	}
+
+	.import-button {
+		width: 100%;
+		background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+		border: none;
+		color: white;
+		padding: 0.875rem 1rem;
+		border-radius: 8px;
+		cursor: pointer;
+		font-size: 0.95rem;
+		font-weight: 600;
+		transition: all 0.2s ease;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		gap: 0.5rem;
+	}
+
+	.import-button:hover {
+		background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+		transform: translateY(-2px);
+		box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+	}
+
+	.import-button:active {
+		transform: translateY(0);
 	}
 
 	.export-button {

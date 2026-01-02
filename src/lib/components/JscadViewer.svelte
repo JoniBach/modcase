@@ -19,6 +19,56 @@
 		}
 	}
 
+	export function loadSTLGeometry(geometry: THREE.BufferGeometry) {
+		if (!scene) return;
+
+		if (currentMesh) {
+			scene.remove(currentMesh);
+			currentMesh.traverse((child) => {
+				if (child instanceof THREE.Mesh) {
+					child.geometry.dispose();
+					if (Array.isArray(child.material)) {
+						child.material.forEach((m) => m.dispose());
+					} else {
+						child.material.dispose();
+					}
+				}
+			});
+		}
+
+		const group = new THREE.Group();
+
+		const material = new THREE.MeshPhongMaterial({
+			color: 0x4a9eff,
+			side: THREE.DoubleSide,
+			flatShading: false
+		});
+
+		const mesh = new THREE.Mesh(geometry, material);
+		group.add(mesh);
+
+		const edges = new THREE.EdgesGeometry(geometry);
+		const lineMaterial = new THREE.LineBasicMaterial({ color: 0x000000, linewidth: 1 });
+		const wireframe = new THREE.LineSegments(edges, lineMaterial);
+		group.add(wireframe);
+
+		scene.add(group);
+		currentMesh = group;
+
+		const box = new THREE.Box3().setFromObject(group);
+		const center = box.getCenter(new THREE.Vector3());
+		const size = box.getSize(new THREE.Vector3());
+		const maxDim = Math.max(size.x, size.y, size.z);
+		const fov = camera.fov * (Math.PI / 180);
+		let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2));
+		cameraZ *= 1.5;
+
+		camera.position.set(cameraZ, cameraZ, cameraZ);
+		camera.lookAt(center);
+		controls.target.copy(center);
+		controls.update();
+	}
+
 	onMount(() => {
 		initScene();
 		animate();
