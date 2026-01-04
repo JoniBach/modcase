@@ -6,13 +6,11 @@ import {
 	createExtrusion1010
 } from './extrusion2020';
 
-const { primitives, booleans, transforms, extrusions, colors } = pkg;
+const { primitives, booleans, transforms } = pkg;
 
-const { cube, sphere, cylinder, cuboid, cylinderElliptic } = primitives;
-const { union, subtract, intersect } = booleans;
-const { translate, rotate, scale } = transforms;
-const { extrudeLinear, extrudeRotate } = extrusions;
-const { colorize } = colors;
+const { cube, sphere, cylinder, cuboid } = primitives;
+const { union, subtract } = booleans;
+const { translate, rotate } = transforms;
 
 export function createCube() {
 	return cube({ size: 10 });
@@ -43,7 +41,6 @@ export function createGear() {
 	const teeth = 12;
 	const toothHeight = 2;
 	const innerRadius = 8;
-	const outerRadius = innerRadius + toothHeight;
 	const thickness = 4;
 
 	const baseCircle = cylinder({ radius: innerRadius, height: thickness, segments: 32 });
@@ -114,6 +111,284 @@ export function createBolt() {
 	return union(movedHead, movedShaft);
 }
 
+export function ioPlate() {
+	// Define main box config first to avoid self-reference
+	const mainBoxConfig = {
+		width: 100,
+		height: 10,
+		depth: 40
+	};
+
+	// Calculate hole height based on main box depth
+	const holeHeight = mainBoxConfig.depth + 2;
+
+	// Configuration object for all parameters
+	const config = {
+		mainBox: mainBoxConfig,
+		subBox: {
+			width: 8,
+			height: 5,
+			depth: 40
+		},
+		middleBox: {
+			width: 70,
+			height: 10,
+			depth: 20,
+			xOffset: 0,
+			yOffset: 0,
+			zOffset: -10
+		},
+		holes: {
+			radius: 1,
+			height: holeHeight,
+			offset: 4
+		}
+	};
+
+	const mainBoxSize: [number, number, number] = [
+		config.mainBox.width,
+		config.mainBox.height,
+		config.mainBox.depth
+	];
+	const subBoxSize: [number, number, number] = [
+		config.subBox.width,
+		config.subBox.height,
+		config.subBox.depth
+	];
+	const middleBoxSize: [number, number, number] = [
+		config.middleBox.width,
+		config.middleBox.height,
+		config.middleBox.depth
+	];
+
+	// Calculate positions to anchor sub boxes to main box sides
+	const subBoxData = [
+		{
+			pos: [
+				mainBoxSize[0] / 2 - subBoxSize[0] / 2,
+				mainBoxSize[1] / 2 - subBoxSize[1] / 2,
+				mainBoxSize[2] / 2 - subBoxSize[2] / 2
+			] as [number, number, number],
+			size: subBoxSize
+		},
+		{
+			pos: [
+				-(mainBoxSize[0] / 2 - subBoxSize[0] / 2),
+				mainBoxSize[1] / 2 - subBoxSize[1] / 2,
+				mainBoxSize[2] / 2 - subBoxSize[2] / 2
+			] as [number, number, number],
+			size: subBoxSize
+		},
+		{
+			pos: [
+				0 + config.middleBox.xOffset,
+				-(mainBoxSize[1] / 2 - middleBoxSize[1] / 2) + config.middleBox.yOffset,
+				mainBoxSize[2] / 2 - middleBoxSize[2] / 2 + config.middleBox.zOffset
+			] as [number, number, number],
+			size: middleBoxSize
+		}
+	];
+
+	const mainBox = cuboid({ size: mainBoxSize });
+
+	const subBoxes = subBoxData.map(({ pos, size }) => {
+		const subBox = cuboid({ size });
+		return translate(pos, subBox);
+	});
+
+	// Create 8 holes, one in each corner of the box, offset inward
+	const holePositions: [number, number, number][] = [
+		// Top face corners
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			mainBoxSize[1] / 2 - config.holes.offset,
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // top-right-front
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			mainBoxSize[1] / 2 - config.holes.offset,
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // top-right-back
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			mainBoxSize[1] / 2 - config.holes.offset,
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // top-left-front
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			mainBoxSize[1] / 2 - config.holes.offset,
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // top-left-back
+		// Bottom face corners
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // bottom-right-front
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // bottom-right-back
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // bottom-left-front
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		] // bottom-left-back
+	];
+	const holes = holePositions.map((pos) =>
+		translate(
+			pos,
+			rotate(
+				[Math.PI / 2, 0, 0],
+				cylinder({ radius: config.holes.radius, height: config.holes.height, segments: 16 })
+			)
+		)
+	);
+
+	return subtract(mainBox, ...subBoxes, ...holes);
+}
+
+export function sandwichPlate() {
+	// Define main box config first to avoid self-reference
+	const mainBoxConfig = {
+		width: 100,
+		height: 10,
+		depth: 40
+	};
+
+	// Calculate hole height based on main box depth
+	const holeHeight = mainBoxConfig.depth + 2;
+
+	// Configuration object for all parameters
+	const config = {
+		mainBox: mainBoxConfig,
+		subBox: {
+			width: 50,
+			height: 5,
+			depth: 40
+		},
+		middleBox: {
+			width: 70,
+			height: 10,
+			depth: 20,
+			xOffset: 0,
+			yOffset: 0,
+			zOffset: -10
+		},
+		holes: {
+			radius: 1,
+			height: holeHeight,
+			offset: 4
+		}
+	};
+
+	const mainBoxSize: [number, number, number] = [
+		config.mainBox.width,
+		config.mainBox.height,
+		config.mainBox.depth
+	];
+	const subBoxSize: [number, number, number] = [
+		config.subBox.width,
+		config.subBox.height,
+		config.subBox.depth
+	];
+	const middleBoxSize: [number, number, number] = [
+		config.middleBox.width,
+		config.middleBox.height,
+		config.middleBox.depth
+	];
+
+	// Calculate positions to anchor sub boxes to main box sides
+	const subBoxData = [
+		{
+			pos: [0, mainBoxSize[1] / 2 - subBoxSize[1] / 2, mainBoxSize[2] / 2 - subBoxSize[2] / 2] as [
+				number,
+				number,
+				number
+			],
+			size: subBoxSize
+		},
+		{
+			pos: [
+				0 + config.middleBox.xOffset,
+				-(mainBoxSize[1] / 2 - middleBoxSize[1] / 2) + config.middleBox.yOffset,
+				mainBoxSize[2] / 2 - middleBoxSize[2] / 2 + config.middleBox.zOffset
+			] as [number, number, number],
+			size: middleBoxSize
+		}
+	];
+
+	const mainBox = cuboid({ size: mainBoxSize });
+
+	const subBoxes = subBoxData.map(({ pos, size }) => {
+		const subBox = cuboid({ size });
+		return translate(pos, subBox);
+	});
+
+	// Create 8 holes, one in each corner of the box, offset inward
+	const holePositions: [number, number, number][] = [
+		// Top face corners
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			mainBoxSize[1] / 2 - config.holes.offset,
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // top-right-front
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			mainBoxSize[1] / 2 - config.holes.offset,
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // top-right-back
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			mainBoxSize[1] / 2 - config.holes.offset,
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // top-left-front
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			mainBoxSize[1] / 2 - config.holes.offset,
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // top-left-back
+		// Bottom face corners
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // bottom-right-front
+		[
+			mainBoxSize[0] / 2 - config.holes.offset,
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		], // bottom-right-back
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			mainBoxSize[2] / 2 - config.holes.offset
+		], // bottom-left-front
+		[
+			-(mainBoxSize[0] / 2 - config.holes.offset),
+			-(mainBoxSize[1] / 2 - config.holes.offset),
+			-(mainBoxSize[2] / 2 - config.holes.offset)
+		] // bottom-left-back
+	];
+	const holes = holePositions.map((pos) =>
+		translate(
+			pos,
+			rotate(
+				[Math.PI / 2, 0, 0],
+				cylinder({ radius: config.holes.radius, height: config.holes.height, segments: 16 })
+			)
+		)
+	);
+
+	return subtract(mainBox, ...subBoxes, ...holes);
+}
+
 export const models = {
 	cube: { name: 'Cube', fn: createCube },
 	sphere: { name: 'Sphere', fn: createSphere },
@@ -122,6 +397,8 @@ export const models = {
 	gear: { name: 'Gear', fn: createGear },
 	house: { name: 'House', fn: createHouse },
 	bolt: { name: 'Bolt', fn: createBolt },
+	ioPlate: { name: 'IO Plate', fn: ioPlate },
+	sandwichPlate: { name: 'Sandwich Plate', fn: sandwichPlate },
 	extrusion1010: { name: 'Extrusion 1010', fn: createExtrusion1010 },
 	extrusion1515: { name: 'Extrusion 1515 (STL)', fn: createExtrusion1515 },
 	extrusion1515Parametric: {

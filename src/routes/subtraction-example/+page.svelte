@@ -10,62 +10,42 @@
 
 	let viewer: any;
 	let currentGeometry: any = null;
-	let selectedModel = 'extrusion2020';
+	let selectedModel = 'ioPlate';
 	let fileInput: HTMLInputElement;
 	let isSTLMode = false;
 	let fromSketch = false;
 	let currentProfile: any = null;
 
-	onMount(() => {
-		// Check if we came from sketch page with geometry
-		const urlParams = new URLSearchParams(window.location.search);
-		fromSketch = urlParams.get('from') === 'sketch';
+	// Filtered models for subtraction examples
+	const subtractionModels = {
+		ioPlate: models.ioPlate,
+		extrusion1010: models.extrusion1010,
+		extrusion1515Parametric: models.extrusion1515Parametric,
+		extrusion2020: models.extrusion2020,
+		sandwichPlate: models.sandwichPlate
+	};
 
-		if (fromSketch) {
-			const storedGeometry = sessionStorage.getItem('extrudedGeometry');
-			if (storedGeometry) {
-				try {
-					currentGeometry = JSON.parse(storedGeometry);
-					sessionStorage.removeItem('extrudedGeometry');
-				} catch (error) {
-					console.error('Failed to load extruded geometry:', error);
-					loadModel('extrusion2020');
-				}
-			} else {
-				loadModel('ioPlate');
-			}
-		} else {
-			const modelParam = urlParams.get('model');
-			const storedModel = localStorage.getItem('lastSelectedModel');
-			const modelToLoad =
-				modelParam && models[modelParam as keyof typeof models]
-					? modelParam
-					: storedModel && models[storedModel as keyof typeof models]
-						? storedModel
-						: 'ioPlate';
-			loadModel(modelToLoad);
-		}
+	onMount(() => {
+		const urlParams = new URLSearchParams(window.location.search);
+		const modelParam = urlParams.get('model');
+		const modelToLoad =
+			modelParam && subtractionModels[modelParam as keyof typeof subtractionModels]
+				? modelParam
+				: 'ioPlate';
+		loadModel(modelToLoad);
 	});
 
 	async function loadModel(modelKey: string) {
 		selectedModel = modelKey;
-		localStorage.setItem('lastSelectedModel', modelKey);
 		isSTLMode = false;
 		fromSketch = false;
-		const model = models[modelKey as keyof typeof models];
+		const model = subtractionModels[modelKey as keyof typeof subtractionModels];
 		if (model) {
-			try {
-				const result = model.fn();
-				if (result instanceof Promise) {
-					currentGeometry = await result;
-				} else {
-					currentGeometry = result;
-				}
-			} catch (error) {
-				console.error(`Failed to load model ${modelKey}:`, error);
-				// Fallback to ioPlate
-				loadModel('ioPlate');
-				return;
+			const result = model.fn();
+			if (result instanceof Promise) {
+				currentGeometry = await result;
+			} else {
+				currentGeometry = result;
 			}
 		}
 
@@ -86,9 +66,8 @@
 
 	function handleExport() {
 		if (viewer) {
-			const modelName = fromSketch
-				? 'sketch_model'
-				: models[selectedModel as keyof typeof models]?.name || 'model';
+			const modelName =
+				subtractionModels[selectedModel as keyof typeof subtractionModels]?.name || 'model';
 			const filename = `${modelName.toLowerCase().replace(/\s+/g, '_')}.stl`;
 			viewer.exportSTL(filename);
 		}
@@ -126,8 +105,8 @@
 	<header>
 		<div class="header-content">
 			<div>
-				<h1>3D Viewer</h1>
-				<p>View and export 3D models</p>
+				<h1>Subtraction Examples</h1>
+				<p>View and export subtraction-based 3D models</p>
 			</div>
 			<button class="nav-button" on:click={() => goto('/')}>
 				<svg
@@ -149,40 +128,18 @@
 
 	<div class="main-content">
 		<aside class="sidebar">
-			{#if fromSketch}
-				<div class="sketch-info">
-					<h2>Your Sketch Model</h2>
-					<p>This model was created from your 2D sketch</p>
-					<button class="action-button" on:click={() => goto('/sketch')}>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="20"
-							height="20"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							stroke-width="2"
-						>
-							<path d="M12 20h9" />
-							<path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
-						</svg>
-						Back to Sketch
+			<h2>Subtraction Examples</h2>
+			<div class="model-list">
+				{#each Object.entries(subtractionModels) as [key, model]}
+					<button
+						class="model-button"
+						class:active={selectedModel === key}
+						on:click={() => loadModel(key)}
+					>
+						{model.name}
 					</button>
-				</div>
-			{:else}
-				<h2>Models</h2>
-				<div class="model-list">
-					{#each Object.entries(models) as [key, model]}
-						<button
-							class="model-button"
-							class:active={selectedModel === key}
-							on:click={() => loadModel(key)}
-						>
-							{model.name}
-						</button>
-					{/each}
-				</div>
-			{/if}
+				{/each}
+			</div>
 
 			{#if currentProfile}
 				<div class="profile-specs">
@@ -377,48 +334,6 @@
 		font-weight: 600;
 		text-transform: uppercase;
 		letter-spacing: 0.5px;
-	}
-
-	.sketch-info {
-		background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
-		border: 2px solid rgba(102, 126, 234, 0.3);
-		border-radius: 12px;
-		padding: 1.5rem;
-		margin-bottom: 1.5rem;
-	}
-
-	.sketch-info h2 {
-		margin: 0 0 0.5rem 0;
-		color: #667eea;
-	}
-
-	.sketch-info p {
-		margin: 0 0 1rem 0;
-		color: #aaa;
-		font-size: 0.9rem;
-	}
-
-	.action-button {
-		width: 100%;
-		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-		border: none;
-		color: white;
-		padding: 0.75rem 1rem;
-		border-radius: 8px;
-		cursor: pointer;
-		font-size: 0.95rem;
-		font-weight: 600;
-		transition: all 0.2s ease;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-	}
-
-	.action-button:hover {
-		background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
-		transform: translateY(-2px);
-		box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
 	}
 
 	.model-list {
