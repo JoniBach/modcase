@@ -2,6 +2,11 @@
 	import { partList } from '$lib/jscad/parts';
 	import { toolList } from '$lib/jscad/tools';
 	import { shapeList } from '$lib/jscad/shapes';
+	import { rectangle, circle } from '$lib/jscad/shapes';
+	import { subtract } from '$lib/jscad/tools';
+	import { serializeToSvg } from '$lib/utils/svgSerializer';
+
+	let geometry = subtract(rectangle(10, 10), circle(3, 5, 5), circle(2, -1, -1));
 </script>
 
 <div class="container">
@@ -23,7 +28,9 @@
 		{/each}
 	</div>
 
-	<div class="content">content</div>
+	<div class="content">
+		<div class="two-d-view">{@html serializeToSvg(geometry)}</div>
+	</div>
 </div>
 
 <style>
@@ -31,6 +38,11 @@
 		display: flex;
 		flex-wrap: wrap;
 		height: 100vh;
+		background-color: #888;
+	}
+	.two-d-view {
+		height: 100%;
+		width: 100%;
 		background-color: #777;
 	}
 	.header {
