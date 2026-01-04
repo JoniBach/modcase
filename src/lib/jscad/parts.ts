@@ -11,12 +11,12 @@ export const example1 = () =>
 		ops: [
 			tools.subtract({
 				ops: [
-					shapes.rectangle({ width: 10, height: 10, x: 0, y: 0, id: 'a' }),
-					shapes.circle({ radius: 3, x: 5, y: 5, id: 'b' }),
-					shapes.circle({ radius: 2, x: -1, y: -1, id: 'c' })
+					shapes.rectangle({ width: '10', height: '10', x: '0', y: '0', id: 'a' }),
+					shapes.circle({ radius: '3', x: '5', y: '5', id: 'b' }),
+					shapes.circle({ radius: '2', x: '-1', y: '-1', id: 'c' })
 				]
 			}),
-			shapes.circle({ radius: 1, x: 5, y: 5, id: 'd' })
+			shapes.circle({ radius: '1', x: '5', y: '5', id: 'd' })
 		]
 	});
 
@@ -27,12 +27,12 @@ export const example2 = () =>
 			{
 				operation: 'subtract',
 				ops: [
-					{ shape: 'rectangle', params: { width: 10, height: 10, x: 0, y: 0 }, id: 'a' },
-					{ shape: 'circle', params: { radius: 3, x: 5, y: 5 }, id: 'b' },
-					{ shape: 'circle', params: { radius: 2, x: -1, y: -1 }, id: 'c' }
+					{ shape: 'rectangle', params: { width: '10', height: '10', x: '0', y: '0' }, id: 'a' },
+					{ shape: 'circle', params: { radius: '3', x: '5', y: '5' }, id: 'b' },
+					{ shape: 'circle', params: { radius: '2', x: '-1', y: '-1' }, id: 'c' }
 				]
 			},
-			{ shape: 'circle', params: { radius: 1, x: 5, y: 5 }, id: 'd' }
+			{ shape: 'circle', params: { radius: '1', x: '5', y: '5' }, id: 'd' }
 		]
 	});
 

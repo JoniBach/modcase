@@ -48,11 +48,11 @@ const _union = (params: { ops: unknown[] }) => {
 };
 
 const shapeParamsSchema = z.object({
-	width: z.number().optional(),
-	height: z.number().optional(),
-	radius: z.number().optional(),
-	x: z.number().optional(),
-	y: z.number().optional()
+	width: z.union([z.number(), z.string()]).optional(),
+	height: z.union([z.number(), z.string()]).optional(),
+	radius: z.union([z.number(), z.string()]).optional(),
+	x: z.union([z.number(), z.string()]).optional(),
+	y: z.union([z.number(), z.string()]).optional()
 });
 
 const shapeNodeSchema = z.object({

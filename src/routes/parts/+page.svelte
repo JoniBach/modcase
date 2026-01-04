@@ -8,8 +8,8 @@
 	import { tools } from '$lib/jscad/tools';
 	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
 
-	let canvasEl;
-	let fabricCanvas;
+	let canvasEl: HTMLCanvasElement;
+	let fabricCanvas: Canvas;
 	let geometry = parts.example2();
 	onMount(() => {
 		fabricCanvas = new Canvas(canvasEl, {
