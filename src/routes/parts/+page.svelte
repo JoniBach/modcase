@@ -7,10 +7,15 @@
 	import { rectangle, circle } from '$lib/jscad/shapes';
 	import { tools } from '$lib/jscad/tools';
 	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
+	import { setUnitConfig, getUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
 
 	let canvasEl: HTMLCanvasElement;
 	let fabricCanvas: Canvas;
-	let geometry = parts.example2();
+	let currentPartId = 'mixedUnits';
+	let geometry = parts.mixedUnits();
+	let selectedUnit: Unit = 'mm';
+	let gridSpacing = 10;
+	let showConfig = false;
 	onMount(() => {
 		fabricCanvas = new Canvas(canvasEl, {
 			backgroundColor: '#2a2a2a',
@@ -34,16 +39,50 @@
 
 		return () => fabricCanvas.dispose();
 	});
+
+	function updateUnitConfig() {
+		setUnitConfig({
+			defaultUnit: selectedUnit,
+			gridSpacing: gridSpacing
+		});
+		if (fabricCanvas) {
+			addGrid(fabricCanvas);
+		}
+	}
+
+	function refreshGeometry() {
+		if (fabricCanvas) {
+			const partFunc = parts[currentPartId as keyof typeof parts];
+			if (typeof partFunc === 'function') {
+				geometry = partFunc();
+				renderGeometry(fabricCanvas, geometry);
+			}
+		}
+	}
+
+	function selectPart(partId: string) {
+		currentPartId = partId;
+		refreshGeometry();
+	}
 </script>
 
 <div class="container">
 	<div class="header">
 		<h1>Parts</h1>
 	</div>
+
 	<div class="menu">
 		<h2>parts</h2>
 		{#each partList as part}
-			<p>{part.name}</p>
+			<p
+				class:active={currentPartId === part.id}
+				on:click={() => selectPart(part.id)}
+				on:keypress={(e) => e.key === 'Enter' && selectPart(part.id)}
+				role="button"
+				tabindex="0"
+			>
+				{part.name}
+			</p>
 		{/each}
 		<h2>tools</h2>
 		{#each toolList as tool}
@@ -52,6 +91,22 @@
 		<h2>shapes</h2>
 		{#each shapeList as shape}
 			<p>{shape.name}</p>
+		{/each}
+
+		<h2>units</h2>
+		{#each unitsList as unit}
+			<p
+				class:active={selectedUnit === unit}
+				on:click={() => {
+					selectedUnit = unit;
+					updateUnitConfig();
+				}}
+				on:keypress={(e) => e.key === 'Enter' && ((selectedUnit = unit), updateUnitConfig())}
+				role="button"
+				tabindex="0"
+			>
+				{unit}
+			</p>
 		{/each}
 	</div>
 
@@ -75,8 +130,85 @@
 		width: 100%;
 		background-color: #333;
 		max-height: 100px;
-		padding-left: 10px;
-		padding-right: 10px;
+		padding: 10px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+	}
+
+	.config-btn {
+		background-color: #555;
+		color: #fff;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+	}
+
+	.config-btn:hover {
+		background-color: #666;
+	}
+
+	.config-panel {
+		width: 100%;
+		background-color: #444;
+		padding: 15px;
+		border-bottom: 2px solid #555;
+	}
+
+	.config-panel h3 {
+		color: #fff;
+		margin-top: 0;
+		margin-bottom: 15px;
+		font-size: 16px;
+	}
+
+	.config-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+		margin-bottom: 10px;
+	}
+
+	.config-row label {
+		color: #ccc;
+		min-width: 120px;
+		font-size: 14px;
+	}
+
+	.config-row select,
+	.config-row input {
+		background-color: #555;
+		color: #fff;
+		border: 1px solid #666;
+		padding: 6px 10px;
+		border-radius: 4px;
+		font-size: 14px;
+	}
+
+	.config-row input[type='number'] {
+		width: 80px;
+	}
+
+	.unit-label {
+		color: #aaa;
+		font-size: 14px;
+	}
+
+	.refresh-btn {
+		background-color: #4a9eff;
+		color: #fff;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 14px;
+		margin-top: 10px;
+	}
+
+	.refresh-btn:hover {
+		background-color: #5aafff;
 	}
 
 	.menu {
@@ -134,5 +266,13 @@
 
 	p:hover {
 		color: #fff;
+	}
+
+	p.active {
+		background-color: #555;
+		color: #4aff9e;
+		padding: 5px 8px;
+		margin-left: -8px;
+		border-radius: 4px;
 	}
 </style>

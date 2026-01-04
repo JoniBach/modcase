@@ -3,6 +3,7 @@ import pkg from '@jscad/modeling';
 import { z } from 'zod';
 
 import { shapes } from './shapes';
+import type { Unit } from './units';
 
 const { booleans } = pkg;
 const { union, subtract: sub, intersect: inter } = booleans;
@@ -52,13 +53,15 @@ const shapeParamsSchema = z.object({
 	height: z.union([z.number(), z.string()]).optional(),
 	radius: z.union([z.number(), z.string()]).optional(),
 	x: z.union([z.number(), z.string()]).optional(),
-	y: z.union([z.number(), z.string()]).optional()
+	y: z.union([z.number(), z.string()]).optional(),
+	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
 });
 
 const shapeNodeSchema = z.object({
 	shape: z.enum(['rectangle', 'circle', 'polygon', 'path']),
 	params: shapeParamsSchema,
-	id: z.string().optional()
+	id: z.string().optional(),
+	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
 });
 
 type OperationNode = {
@@ -77,17 +80,25 @@ const jsonInputSchema = z.union([operationNodeSchema, shapeNodeSchema]);
 
 function buildGeometry(node: z.infer<typeof jsonInputSchema>): unknown {
 	if ('shape' in node) {
-		const { shape, params, id } = node;
+		const { shape, params, id, unit } = node;
+		const shapeUnit = unit || params.unit;
 		if (shape === 'rectangle') {
 			return shapes.rectangle({
 				width: params.width!,
 				height: params.height!,
 				x: params.x ?? 0,
 				y: params.y ?? 0,
-				id
+				id,
+				unit: shapeUnit
 			});
 		} else if (shape === 'circle') {
-			return shapes.circle({ radius: params.radius!, x: params.x ?? 0, y: params.y ?? 0, id });
+			return shapes.circle({
+				radius: params.radius!,
+				x: params.x ?? 0,
+				y: params.y ?? 0,
+				id,
+				unit: shapeUnit
+			});
 		}
 		// Add other shapes as needed
 		return null;

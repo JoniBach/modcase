@@ -1,9 +1,11 @@
 import { Canvas, Rect, Line, loadSVGFromString, Text, Point } from 'fabric';
 import type { TPointerEventInfo, TPointerEvent, WheelEvent } from 'fabric';
 import { serializeToSvg } from '$lib/utils/svgSerializer';
+import { getUnitConfig, formatValue } from './units';
 
 export const addGrid = (canvas: Canvas) => {
 	const zoom = canvas.getZoom();
+	const config = getUnitConfig();
 	const gridSize = Math.max(10, 50 / zoom);
 	const extent = 20;
 	const gridLines: (Line | Text)[] = [];
@@ -14,7 +16,7 @@ export const addGrid = (canvas: Canvas) => {
 		.filter((obj: any) => obj.isGrid)
 		.forEach((obj: any) => canvas.remove(obj));
 
-	const mmPerPixel = gridSize; // Assuming gridSize pixels = gridSize mm
+	const unitsPerGrid = config.gridSpacing;
 	for (let i = -extent; i <= extent; i++) {
 		// Vertical lines
 		gridLines.push(
@@ -37,14 +39,15 @@ export const addGrid = (canvas: Canvas) => {
 			})
 		);
 
-		// Add mm labels
+		// Add unit labels
 		if (i !== 0) {
 			const vpt = canvas.viewportTransform;
 			const tx = vpt[4];
 			const ty = vpt[5];
-			const mmValue = Math.round(i * mmPerPixel);
+			const unitValue = i * unitsPerGrid;
+			const label = formatValue(unitValue, config.defaultUnit, 0);
 			// X-axis label (at grid x, screen top)
-			const xLabel = new Text(`${mmValue}mm`, {
+			const xLabel = new Text(label, {
 				left: i * gridSize,
 				top: (10 - ty) / zoom,
 				fontSize: 10 / zoom,
@@ -57,7 +60,7 @@ export const addGrid = (canvas: Canvas) => {
 			});
 			gridLines.push(xLabel);
 			// Y-axis label (at grid y, screen left)
-			const yLabel = new Text(`${mmValue}mm`, {
+			const yLabel = new Text(label, {
 				left: (10 - tx) / zoom,
 				top: i * gridSize,
 				fontSize: 10 / zoom,

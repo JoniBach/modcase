@@ -36,6 +36,31 @@ export const example2 = () =>
 		]
 	});
 
+export const mixedUnits = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '50', height: '30', x: '0', y: '0' },
+				id: 'base',
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '0.5', x: '1', y: '0.5' },
+				id: 'hole1',
+				unit: 'in'
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '2cm', height: '1cm', x: '-15', y: '-10' },
+				id: 'feature',
+				unit: 'mm'
+			}
+		]
+	});
+
 export const parts = {
 	ioPlate,
 	basePlate,
@@ -43,7 +68,8 @@ export const parts = {
 	motherboardPlate,
 	casePlate,
 	example1,
-	example2
+	example2,
+	mixedUnits
 };
 
 export const partList = [
@@ -74,5 +100,9 @@ export const partList = [
 	{
 		id: 'example2',
 		name: 'Example 2'
+	},
+	{
+		id: 'mixedUnits',
+		name: 'Mixed Units Demo'
 	}
 ];
