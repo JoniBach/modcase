@@ -17,7 +17,8 @@
 		"@jscad/modeling": "^2.12.1",
 		"@jscad/svg-serializer": "^2.3.19",
 		"fabric": "^7.1.0",
-		"three": "^0.160.0"
+		"three": "^0.160.0",
+		"zod": "^4.3.5"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^1.4.0",

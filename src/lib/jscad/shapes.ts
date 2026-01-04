@@ -3,12 +3,22 @@ import pkg from '@jscad/modeling';
 const { primitives } = pkg;
 const { rectangle: rect, circle: circ } = primitives;
 
-export const rectangle = (width: number, height: number, x: number = 0, y: number = 0) => {
-	return rect({ size: [width, height], center: [x, y] });
+export const rectangle = (params: {
+	width: number;
+	height: number;
+	x?: number;
+	y?: number;
+	id?: string;
+}) => {
+	const { width, height, x = 0, y = 0, id } = params;
+	const geom = rect({ size: [width, height], center: [x, y] });
+	return id ? { id, geometry: geom } : geom;
 };
 
-export const circle = (radius: number, x: number = 0, y: number = 0) => {
-	return circ({ radius, center: [x, y] });
+export const circle = (params: { radius: number; x?: number; y?: number; id?: string }) => {
+	const { radius, x = 0, y = 0, id } = params;
+	const geom = circ({ radius, center: [x, y] });
+	return id ? { id, geometry: geom } : geom;
 };
 
 export const shapes = {

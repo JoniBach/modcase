@@ -7,14 +7,34 @@ export const sandwichPlate = () => null;
 export const motherboardPlate = () => null;
 export const casePlate = () => null;
 export const example1 = () =>
-	tools.union(
-		tools.subtract(
-			shapes.rectangle(10, 10, 0, 0),
-			shapes.circle(3, 5, 5),
-			shapes.circle(2, -1, -1)
-		),
-		shapes.circle(1, 5, 5)
-	);
+	tools.union({
+		ops: [
+			tools.subtract({
+				ops: [
+					shapes.rectangle({ width: 10, height: 10, x: 0, y: 0, id: 'a' }),
+					shapes.circle({ radius: 3, x: 5, y: 5, id: 'b' }),
+					shapes.circle({ radius: 2, x: -1, y: -1, id: 'c' })
+				]
+			}),
+			shapes.circle({ radius: 1, x: 5, y: 5, id: 'd' })
+		]
+	});
+
+export const example2 = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				operation: 'subtract',
+				ops: [
+					{ shape: 'rectangle', params: { width: 10, height: 10, x: 0, y: 0 }, id: 'a' },
+					{ shape: 'circle', params: { radius: 3, x: 5, y: 5 }, id: 'b' },
+					{ shape: 'circle', params: { radius: 2, x: -1, y: -1 }, id: 'c' }
+				]
+			},
+			{ shape: 'circle', params: { radius: 1, x: 5, y: 5 }, id: 'd' }
+		]
+	});
 
 export const parts = {
 	ioPlate,
@@ -22,7 +42,8 @@ export const parts = {
 	sandwichPlate,
 	motherboardPlate,
 	casePlate,
-	example1
+	example1,
+	example2
 };
 
 export const partList = [
@@ -49,5 +70,9 @@ export const partList = [
 	{
 		id: 'example1',
 		name: 'Example 1'
+	},
+	{
+		id: 'example2',
+		name: 'Example 2'
 	}
 ];

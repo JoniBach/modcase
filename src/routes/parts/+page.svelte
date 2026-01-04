@@ -10,7 +10,7 @@
 
 	let canvasEl;
 	let fabricCanvas;
-	let geometry = parts.example1();
+	let geometry = parts.example2();
 	onMount(() => {
 		fabricCanvas = new Canvas(canvasEl, {
 			backgroundColor: '#2a2a2a',
