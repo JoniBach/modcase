@@ -1,4 +1,7 @@
 <script>
+	import { partList } from '$lib/jscad/parts';
+	import { toolList } from '$lib/jscad/tools';
+	import { shapeList } from '$lib/jscad/shapes';
 </script>
 
 <div class="container">
@@ -6,12 +9,20 @@
 		<h1>Parts</h1>
 	</div>
 	<div class="menu">
-		<div class="menu-item">
-			<h2>item</h2>
-			<h2>item</h2>
-			<h2>item</h2>
-		</div>
+		<h2>parts</h2>
+		{#each partList as part}
+			<p>{part.name}</p>
+		{/each}
+		<h2>tools</h2>
+		{#each toolList as tool}
+			<p>{tool.name}</p>
+		{/each}
+		<h2>shapes</h2>
+		{#each shapeList as shape}
+			<p>{shape.name}</p>
+		{/each}
 	</div>
+
 	<div class="content">content</div>
 </div>
 
@@ -36,6 +47,7 @@
 		max-width: 200px;
 		min-width: 200px;
 		width: 20%;
+		padding-left: 10px;
 		background-color: #444;
 		height: calc(100vh - 100px);
 	}

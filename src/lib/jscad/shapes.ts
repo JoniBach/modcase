@@ -1,5 +1,15 @@
-export const rectangle = () => null;
-export const circle = () => null;
+import pkg from '@jscad/modeling';
+
+const { primitives } = pkg;
+const { rectangle: rect, circle: circ } = primitives;
+
+export const rectangle = (width: number, height: number, x: number = 0, y: number = 0) => {
+	return rect({ size: [width, height], center: [x, y] });
+};
+
+export const circle = (radius: number, x: number = 0, y: number = 0) => {
+	return circ({ radius, center: [x, y] });
+};
 
 export const shapes = {
 	rectangle,
