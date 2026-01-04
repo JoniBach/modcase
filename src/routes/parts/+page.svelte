@@ -1,12 +1,39 @@
-<script>
-	import { partList } from '$lib/jscad/parts';
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import { Canvas } from 'fabric';
+	import { partList, parts } from '$lib/jscad/parts';
 	import { toolList } from '$lib/jscad/tools';
 	import { shapeList } from '$lib/jscad/shapes';
 	import { rectangle, circle } from '$lib/jscad/shapes';
-	import { subtract } from '$lib/jscad/tools';
-	import { serializeToSvg } from '$lib/utils/svgSerializer';
+	import { tools } from '$lib/jscad/tools';
+	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
 
-	let geometry = subtract(rectangle(10, 10), circle(3, 5, 5), circle(2, -1, -1));
+	let canvasEl;
+	let fabricCanvas;
+	let geometry = parts.example1();
+	onMount(() => {
+		fabricCanvas = new Canvas(canvasEl, {
+			backgroundColor: '#2a2a2a',
+			selection: false
+		});
+
+		// Center the canvas at 0,0
+		const vpt = fabricCanvas.viewportTransform;
+		vpt[4] = fabricCanvas.width / 2;
+		vpt[5] = fabricCanvas.height / 2;
+		fabricCanvas.requestRenderAll();
+
+		// Add grid
+		addGrid(fabricCanvas);
+
+		// Render geometry
+		renderGeometry(fabricCanvas, geometry);
+
+		// Enable pan and zoom
+		enablePanZoom(fabricCanvas);
+
+		return () => fabricCanvas.dispose();
+	});
 </script>
 
 <div class="container">
@@ -29,7 +56,10 @@
 	</div>
 
 	<div class="content">
-		<div class="two-d-view">{@html serializeToSvg(geometry)}</div>
+		<canvas bind:this={canvasEl} width="800" height="600"></canvas>
+		<div class="controls">
+			<small>Scroll to zoom • Alt+drag to pan</small>
+		</div>
 	</div>
 </div>
 
@@ -40,11 +70,7 @@
 		height: 100vh;
 		background-color: #888;
 	}
-	.two-d-view {
-		height: 100%;
-		width: 100%;
-		background-color: #777;
-	}
+
 	.header {
 		width: 100%;
 		background-color: #333;
@@ -62,13 +88,7 @@
 		padding-left: 10px;
 		background-color: #444;
 		height: calc(100vh - 100px);
-	}
-
-	.menu-item {
-		flex: 1;
-		background-color: #555;
-		padding-left: 10px;
-		padding-right: 10px;
+		overflow-y: auto;
 	}
 
 	.content {
@@ -76,5 +96,43 @@
 		background-color: #666;
 		height: calc(100vh - 100px);
 		padding: 10px;
+		position: relative;
+	}
+
+	canvas {
+		width: 100%;
+		height: calc(100% - 30px);
+	}
+
+	.controls {
+		position: absolute;
+		bottom: 15px;
+		left: 15px;
+		color: #ccc;
+		background-color: rgba(0, 0, 0, 0.5);
+		padding: 5px 10px;
+		border-radius: 4px;
+	}
+
+	h1 {
+		color: #fff;
+	}
+
+	h2 {
+		color: #aaa;
+		font-size: 14px;
+		margin-top: 15px;
+		margin-bottom: 5px;
+	}
+
+	p {
+		color: #ccc;
+		font-size: 13px;
+		margin: 3px 0;
+		cursor: pointer;
+	}
+
+	p:hover {
+		color: #fff;
 	}
 </style>
