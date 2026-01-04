@@ -4,6 +4,8 @@ import { z } from 'zod';
 
 import { shapes } from './shapes';
 import type { Unit } from './units';
+import type { AnchorValue } from './anchors';
+import { resolveAllPositions, type ResolvedPosition } from './positioning';
 
 const { booleans } = pkg;
 const { union, subtract: sub, intersect: inter } = booleans;
@@ -54,14 +56,37 @@ const shapeParamsSchema = z.object({
 	radius: z.union([z.number(), z.string()]).optional(),
 	x: z.union([z.number(), z.string()]).optional(),
 	y: z.union([z.number(), z.string()]).optional(),
-	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
+	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional(),
+	anchor: z
+		.union([
+			z.string(),
+			z.array(z.union([z.number(), z.string()])),
+			z.object({
+				x: z.union([z.number(), z.string()]),
+				y: z.union([z.number(), z.string()]),
+				unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
+			})
+		])
+		.optional()
 });
 
 const shapeNodeSchema = z.object({
 	shape: z.enum(['rectangle', 'circle', 'polygon', 'path']),
 	params: shapeParamsSchema,
 	id: z.string().optional(),
-	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
+	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional(),
+	anchor: z
+		.union([
+			z.string(),
+			z.array(z.union([z.number(), z.string()])),
+			z.object({
+				x: z.union([z.number(), z.string()]),
+				y: z.union([z.number(), z.string()]),
+				unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional()
+			})
+		])
+		.optional(),
+	relativeTo: z.string().optional()
 });
 
 type OperationNode = {
@@ -78,33 +103,50 @@ const operationNodeSchema: z.ZodType<OperationNode> = z.lazy(() =>
 
 const jsonInputSchema = z.union([operationNodeSchema, shapeNodeSchema]);
 
-function buildGeometry(node: z.infer<typeof jsonInputSchema>): unknown {
+function buildGeometry(
+	node: z.infer<typeof jsonInputSchema>,
+	resolvedPositions?: Map<string, ResolvedPosition>
+): unknown {
 	if ('shape' in node) {
-		const { shape, params, id, unit } = node;
+		const { shape, params, id, unit, anchor } = node;
 		const shapeUnit = unit || params.unit;
+		const shapeAnchor = (anchor || params.anchor) as AnchorValue | undefined;
+
+		let xPos = params.x ?? 0;
+		let yPos = params.y ?? 0;
+		let positionUnit = shapeUnit;
+
+		if (id && resolvedPositions?.has(id)) {
+			const resolved = resolvedPositions.get(id)!;
+			xPos = resolved.x;
+			yPos = resolved.y;
+			positionUnit = 'mm'; // Resolved positions are always in MM
+		}
+
 		if (shape === 'rectangle') {
 			return shapes.rectangle({
 				width: params.width!,
 				height: params.height!,
-				x: params.x ?? 0,
-				y: params.y ?? 0,
+				x: xPos,
+				y: yPos,
 				id,
-				unit: shapeUnit
+				unit: positionUnit,
+				anchor: shapeAnchor
 			});
 		} else if (shape === 'circle') {
 			return shapes.circle({
 				radius: params.radius!,
-				x: params.x ?? 0,
-				y: params.y ?? 0,
+				x: xPos,
+				y: yPos,
 				id,
-				unit: shapeUnit
+				unit: positionUnit,
+				anchor: shapeAnchor
 			});
 		}
-		// Add other shapes as needed
 		return null;
 	} else if ('operation' in node) {
 		const { operation, ops } = node;
-		const geoms = ops.map(buildGeometry);
+		const geoms = ops.map((op) => buildGeometry(op, resolvedPositions));
 		if (operation === 'add' || operation === 'union') {
 			return _union({ ops: geoms });
 		} else if (operation === 'subtract') {
@@ -117,9 +159,27 @@ function buildGeometry(node: z.infer<typeof jsonInputSchema>): unknown {
 	return null;
 }
 
+function collectAllNodes(node: z.infer<typeof jsonInputSchema>): unknown[] {
+	const nodes: unknown[] = [];
+
+	function collect(n: z.infer<typeof jsonInputSchema>) {
+		nodes.push(n);
+		if ('operation' in n && n.ops) {
+			n.ops.forEach(collect);
+		}
+	}
+
+	collect(node);
+	return nodes;
+}
+
 const _jsonTools = (jsonInput: unknown) => {
 	const parsed = jsonInputSchema.parse(jsonInput);
-	return buildGeometry(parsed);
+
+	const allNodes = collectAllNodes(parsed);
+	const resolvedPositions = resolveAllPositions(allNodes);
+
+	return buildGeometry(parsed, resolvedPositions);
 };
 
 export const tools = {

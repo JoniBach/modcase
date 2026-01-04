@@ -1,5 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
+	import { get } from 'svelte/store';
 	import { Canvas } from 'fabric';
 	import { partList, parts } from '$lib/jscad/parts';
 	import { toolList } from '$lib/jscad/tools';
@@ -16,7 +18,37 @@
 	let selectedUnit: Unit = 'mm';
 	let gridSpacing = 10;
 	let showConfig = false;
+
+	// Initialize from URL parameters
+	function initializeFromUrl() {
+		const urlParams = get(page).url.searchParams;
+
+		// Load part from URL
+		const partParam = urlParams.get('part');
+		if (partParam && partList.some((p) => p.id === partParam)) {
+			currentPartId = partParam;
+			geometry = parts[currentPartId as keyof typeof parts]();
+		}
+
+		// Load unit from URL
+		const unitParam = urlParams.get('unit');
+		if (unitParam && unitsList.includes(unitParam as Unit)) {
+			selectedUnit = unitParam as Unit;
+		}
+	}
+
+	// Update URL with current parameters
+	function updateUrl() {
+		const url = new URL(window.location.href);
+		url.searchParams.set('part', currentPartId);
+		url.searchParams.set('unit', selectedUnit);
+		window.history.replaceState({}, '', url.toString());
+	}
+
 	onMount(() => {
+		initializeFromUrl();
+		updateUrl();
+
 		fabricCanvas = new Canvas(canvasEl, {
 			backgroundColor: '#2a2a2a',
 			selection: false
@@ -62,6 +94,7 @@
 
 	function selectPart(partId: string) {
 		currentPartId = partId;
+		updateUrl();
 		refreshGeometry();
 	}
 </script>

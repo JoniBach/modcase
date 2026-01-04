@@ -6,8 +6,8 @@ import { getUnitConfig, formatValue } from './units';
 export const addGrid = (canvas: Canvas) => {
 	const zoom = canvas.getZoom();
 	const config = getUnitConfig();
-	const gridSize = Math.max(10, 50 / zoom);
-	const extent = 20;
+	const gridSize = 50;
+	const extent = Math.ceil(20 / zoom);
 	const gridLines: (Line | Text)[] = [];
 
 	// Remove existing grid
@@ -22,7 +22,7 @@ export const addGrid = (canvas: Canvas) => {
 		gridLines.push(
 			new Line([i * gridSize, -extent * gridSize, i * gridSize, extent * gridSize], {
 				stroke: i === 0 ? '#666' : '#3a3a3a',
-				strokeWidth: (i === 0 ? 2 : 1) / zoom,
+				strokeWidth: i === 0 ? 2 : 1,
 				selectable: false,
 				evented: false,
 				isGrid: true
@@ -32,7 +32,7 @@ export const addGrid = (canvas: Canvas) => {
 		gridLines.push(
 			new Line([-extent * gridSize, i * gridSize, extent * gridSize, i * gridSize], {
 				stroke: i === 0 ? '#666' : '#3a3a3a',
-				strokeWidth: (i === 0 ? 2 : 1) / zoom,
+				strokeWidth: i === 0 ? 2 : 1,
 				selectable: false,
 				evented: false,
 				isGrid: true
@@ -90,9 +90,11 @@ export const renderGeometry = (canvas: Canvas, geom: any) => {
 	// Load SVG into fabric
 	loadSVGFromString(svgString)
 		.then((result: any) => {
+			const config = getUnitConfig();
+			const scaleFactor = 50 / config.gridSpacing;
 			result.objects.forEach((obj: any) => {
 				// Scale and position the objects appropriately
-				obj.scale(1); // Adjust scale as needed
+				obj.scale(scaleFactor);
 				obj.set({
 					left: 0,
 					top: 0,

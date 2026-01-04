@@ -61,6 +61,262 @@ export const mixedUnits = () =>
 		]
 	});
 
+export const anchorDemo = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'circle',
+				params: { radius: '8', x: '0', y: '0' },
+				id: 'marker-at-origin',
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '6', x: '0', y: '0' },
+				id: 'marker-bottom-left',
+				unit: 'mm',
+				anchor: 'bottom-left'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '10', x: '0', y: '0' },
+				id: 'marker-top-right',
+				unit: 'mm',
+				anchor: 'top-right'
+			}
+		]
+	});
+
+export const anchorPercentage = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '50', height: '30', x: '0', y: '0' },
+				id: 'base',
+				unit: 'mm',
+				anchor: [50, 50]
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '20', height: '10', x: '30', y: '0' },
+				id: 'custom-percent',
+				unit: 'mm',
+				anchor: [25, 75]
+			},
+			{
+				shape: 'circle',
+				params: { radius: '8', x: '-30', y: '0' },
+				id: 'absolute-anchor',
+				unit: 'mm',
+				anchor: { x: '5mm', y: '5mm' }
+			}
+		]
+	});
+
+export const relativePositioning = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '40', height: '30', x: '0', y: '0' },
+				id: 'base',
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '5', x: '10', y: '5' },
+				id: 'circle1',
+				unit: 'mm',
+				relativeTo: 'base'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '3', x: '15', y: '0' },
+				id: 'circle2',
+				unit: 'mm',
+				relativeTo: 'circle1'
+			}
+		]
+	});
+
+export const relativeChain = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '20', height: '20', x: '-30', y: '-30' },
+				id: 'rectA',
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '8', x: '25', y: '0' },
+				id: 'circleB',
+				unit: 'mm',
+				relativeTo: 'rectA'
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '15', height: '15', x: '20', y: '0' },
+				id: 'rectC',
+				unit: 'mm',
+				relativeTo: 'circleB'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '5', x: '0', y: '20' },
+				id: 'circleD',
+				unit: 'mm',
+				relativeTo: 'rectC'
+			}
+		]
+	});
+
+export const mixedPositioning = () =>
+	tools.json({
+		operation: 'union',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '50', height: '40', x: '0', y: '0' },
+				id: 'plate',
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: '10', y: '10' },
+				id: 'hole1',
+				unit: 'mm',
+				relativeTo: 'plate'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: '-10', y: '10' },
+				id: 'hole2',
+				unit: 'mm',
+				relativeTo: 'plate'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: '10', y: '-10' },
+				id: 'hole3',
+				unit: 'mm',
+				relativeTo: 'plate'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: '-10', y: '-10' },
+				id: 'hole4',
+				unit: 'mm',
+				relativeTo: 'plate'
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '10', height: '10', x: '-40', y: '0' },
+				id: 'absolute-feature',
+				unit: 'mm'
+			}
+		]
+	});
+
+export const squareWithHoles = () =>
+	tools.json({
+		operation: 'subtract',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '40', height: '40', x: '0', y: '0' },
+				id: 'square',
+				anchor: { x: 0, y: 0 },
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '8', x: 20, y: 20 },
+				id: 'center-hole',
+				unit: 'mm',
+				relativeTo: 'square',
+				anchor: { x: 50, y: 50 }
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: -15, y: 15 },
+				id: 'top-left-hole',
+				unit: 'mm',
+				relativeTo: 'center-hole',
+				anchor: { x: 50, y: 50 }
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: 15, y: 15 },
+				id: 'top-right-hole',
+				unit: 'mm',
+				relativeTo: 'center-hole',
+				anchor: { x: 50, y: 50 }
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: -15, y: -15 },
+				id: 'bottom-left-hole',
+				unit: 'mm',
+				relativeTo: 'center-hole',
+				anchor: { x: 50, y: 50 }
+			},
+			{
+				shape: 'circle',
+				params: { radius: '4', x: 15, y: -15 },
+				id: 'bottom-right-hole',
+				unit: 'mm',
+				relativeTo: 'center-hole',
+				anchor: { x: 50, y: 50 }
+			}
+		]
+	});
+
+export const extrusion2020 = () =>
+	tools.json({
+		operation: 'subtract',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '40', height: '40', x: '0', y: '0' },
+				id: 'square',
+				anchor: { x: 0, y: 0 },
+				unit: 'mm'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '5', x: 20, y: 20 },
+				id: 'center-hole',
+				unit: 'mm',
+				relativeTo: 'square',
+				anchor: { x: 50, y: 50 }
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '10', height: '2', x: '20', y: '40' },
+				id: 'a',
+				anchor: 'top-center',
+				unit: 'mm',
+				relativeTo: 'square'
+			},
+			{
+				shape: 'rectangle',
+				params: { width: '20', height: '2', x: '0', y: '-2' },
+				id: 'b',
+				anchor: 'top-center',
+				unit: 'mm',
+				relativeTo: 'a'
+			}
+		]
+	});
+
 export const parts = {
 	ioPlate,
 	basePlate,
@@ -69,7 +325,14 @@ export const parts = {
 	casePlate,
 	example1,
 	example2,
-	mixedUnits
+	mixedUnits,
+	anchorDemo,
+	anchorPercentage,
+	relativePositioning,
+	relativeChain,
+	mixedPositioning,
+	extrusion2020,
+	squareWithHoles
 };
 
 export const partList = [
@@ -104,5 +367,33 @@ export const partList = [
 	{
 		id: 'mixedUnits',
 		name: 'Mixed Units Demo'
+	},
+	{
+		id: 'anchorDemo',
+		name: 'Anchor Presets Demo'
+	},
+	{
+		id: 'anchorPercentage',
+		name: 'Anchor Percentage Demo'
+	},
+	{
+		id: 'relativePositioning',
+		name: 'Relative Positioning Demo'
+	},
+	{
+		id: 'relativeChain',
+		name: 'Relative Chain Demo'
+	},
+	{
+		id: 'mixedPositioning',
+		name: 'Mixed Positioning Demo'
+	},
+	{
+		id: 'extrusion2020',
+		name: 'Extrusion 2020'
+	},
+	{
+		id: 'squareWithHoles',
+		name: '40x40 Square with Holes'
 	}
 ];
