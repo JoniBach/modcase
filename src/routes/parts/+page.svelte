@@ -10,14 +10,22 @@
 	import { tools } from '$lib/jscad/tools';
 	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
 	import { setUnitConfig, getUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
+	import { setup3DCanvas, render3DGeometry } from '$lib/jscad/3dCanvas';
+	import * as THREE from 'three';
 
 	let canvasEl: HTMLCanvasElement;
+	let canvas3d: HTMLCanvasElement;
 	let fabricCanvas: Canvas;
 	let currentPartId = 'mixedUnits';
 	let geometry = parts.mixedUnits();
 	let selectedUnit: Unit = 'mm';
 	let gridSpacing = 10;
 	let showConfig = false;
+	let extrusionHeight = 5; // mm
+
+	// 3D variables
+	let scene: THREE.Scene;
+	let renderer: THREE.WebGLRenderer;
 
 	// Initialize from URL parameters
 	function initializeFromUrl() {
@@ -35,6 +43,15 @@
 		if (unitParam && unitsList.includes(unitParam as Unit)) {
 			selectedUnit = unitParam as Unit;
 		}
+
+		// Load height from URL
+		const heightParam = urlParams.get('height');
+		if (heightParam) {
+			const h = parseFloat(heightParam);
+			if (!isNaN(h) && h >= 1 && h <= 20) {
+				extrusionHeight = h;
+			}
+		}
 	}
 
 	// Update URL with current parameters
@@ -42,6 +59,7 @@
 		const url = new URL(window.location.href);
 		url.searchParams.set('part', currentPartId);
 		url.searchParams.set('unit', selectedUnit);
+		url.searchParams.set('height', extrusionHeight.toString());
 		window.history.replaceState({}, '', url.toString());
 	}
 
@@ -49,6 +67,7 @@
 		initializeFromUrl();
 		updateUrl();
 
+		// 2D setup
 		fabricCanvas = new Canvas(canvasEl, {
 			backgroundColor: '#2a2a2a',
 			selection: false
@@ -69,7 +88,16 @@
 		// Enable pan and zoom
 		enablePanZoom(fabricCanvas);
 
-		return () => fabricCanvas.dispose();
+		// 3D setup
+		const { scene: s, renderer: r, animate } = setup3DCanvas(canvas3d);
+		scene = s;
+		renderer = r;
+		animate();
+
+		return () => {
+			fabricCanvas.dispose();
+			if (renderer) renderer.dispose();
+		};
 	});
 
 	function updateUnitConfig() {
@@ -88,6 +116,7 @@
 			if (typeof partFunc === 'function') {
 				geometry = partFunc();
 				renderGeometry(fabricCanvas, geometry);
+				render3DGeometry(scene, geometry, extrusionHeight);
 			}
 		}
 	}
@@ -96,6 +125,12 @@
 		currentPartId = partId;
 		updateUrl();
 		refreshGeometry();
+	}
+
+	// Reactive update for 3D when height changes
+	$: if (extrusionHeight && scene) {
+		render3DGeometry(scene, geometry, extrusionHeight);
+		updateUrl();
 	}
 </script>
 
@@ -144,9 +179,25 @@
 	</div>
 
 	<div class="content">
-		<canvas bind:this={canvasEl} width="800" height="600"></canvas>
-		<div class="controls">
-			<small>Scroll to zoom • Alt+drag to pan</small>
+		<div class="view-2d">
+			<canvas bind:this={canvasEl} width="800" height="600"></canvas>
+			<div class="controls">
+				<small>Scroll to zoom • Alt+drag to pan</small>
+			</div>
+		</div>
+		<div class="view-3d">
+			<canvas bind:this={canvas3d}></canvas>
+			<div class="controls-3d">
+				<label for="height-slider">Extrusion Height: {extrusionHeight}mm</label>
+				<input
+					id="height-slider"
+					type="range"
+					min="1"
+					max="20"
+					step="0.5"
+					bind:value={extrusionHeight}
+				/>
+			</div>
 		</div>
 	</div>
 </div>
@@ -260,23 +311,61 @@
 		flex: 1;
 		background-color: #666;
 		height: calc(100vh - 100px);
-		padding: 10px;
+		position: relative;
+		display: flex;
+	}
+
+	.view-2d,
+	.view-3d {
+		flex: 1;
 		position: relative;
 	}
 
-	canvas {
+	.view-2d canvas {
 		width: 100%;
 		height: calc(100% - 30px);
 	}
 
-	.controls {
+	.view-3d canvas {
+		width: 100%;
+		height: 100%;
+	}
+
+	.controls-3d {
 		position: absolute;
 		bottom: 15px;
 		left: 15px;
 		color: #ccc;
 		background-color: rgba(0, 0, 0, 0.5);
-		padding: 5px 10px;
+		padding: 10px;
 		border-radius: 4px;
+		min-width: 200px;
+	}
+
+	.controls-3d label {
+		display: block;
+		font-size: 14px;
+		margin-bottom: 5px;
+	}
+
+	.controls-3d input[type='range'] {
+		width: 100%;
+		background-color: #555;
+		border: 1px solid #666;
+		border-radius: 4px;
+		height: 6px;
+		-webkit-appearance: none;
+		appearance: none;
+	}
+
+	.controls-3d input[type='range']::-webkit-slider-thumb {
+		-webkit-appearance: none;
+		appearance: none;
+		width: 16px;
+		height: 16px;
+		border-radius: 50%;
+		background: #4a9eff;
+		cursor: pointer;
 	}
 
 	h1 {
