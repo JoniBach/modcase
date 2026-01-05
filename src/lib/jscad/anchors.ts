@@ -9,7 +9,9 @@ export type AnchorPreset =
 	| 'center-right'
 	| 'bottom-left'
 	| 'bottom-center'
-	| 'bottom-right';
+	| 'bottom-right'
+	| 'left-center'
+	| 'right-center';
 
 export interface AnchorPoint {
 	x: number;
@@ -30,7 +32,9 @@ const ANCHOR_PRESETS: Record<AnchorPreset, AnchorPoint> = {
 	'center-right': { x: 100, y: 50 },
 	'top-left': { x: 0, y: 100 },
 	'top-center': { x: 50, y: 100 },
-	'top-right': { x: 100, y: 100 }
+	'top-right': { x: 100, y: 100 },
+	'left-center': { x: 0, y: 50 },
+	'right-center': { x: 100, y: 50 }
 };
 
 export interface ParsedAnchor {

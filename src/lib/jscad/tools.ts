@@ -54,6 +54,12 @@ const shapeParamsSchema = z.object({
 	width: z.union([z.number(), z.string()]).optional(),
 	height: z.union([z.number(), z.string()]).optional(),
 	radius: z.union([z.number(), z.string()]).optional(),
+	// Trapezoid parameters
+	bottomWidth: z.union([z.number(), z.string()]).optional(),
+	topWidth: z.union([z.number(), z.string()]).optional(),
+	leftHeight: z.union([z.number(), z.string()]).optional(),
+	rightHeight: z.union([z.number(), z.string()]).optional(),
+	orientation: z.enum(['vertical', 'horizontal']).optional(),
 	x: z.union([z.number(), z.string()]).optional(),
 	y: z.union([z.number(), z.string()]).optional(),
 	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional(),
@@ -71,7 +77,7 @@ const shapeParamsSchema = z.object({
 });
 
 const shapeNodeSchema = z.object({
-	shape: z.enum(['rectangle', 'circle', 'polygon', 'path']),
+	shape: z.enum(['rectangle', 'circle', 'polygon', 'path', 'trapezoidX', 'trapezoidY']),
 	params: shapeParamsSchema,
 	id: z.string().optional(),
 	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional(),
@@ -136,6 +142,28 @@ function buildGeometry(
 		} else if (shape === 'circle') {
 			return shapes.circle({
 				radius: params.radius!,
+				x: xPos,
+				y: yPos,
+				id,
+				unit: positionUnit,
+				anchor: shapeAnchor
+			});
+		} else if (shape === 'trapezoidY') {
+			return shapes.trapezoidY({
+				bottomWidth: params.bottomWidth,
+				topWidth: params.topWidth,
+				height: params.height,
+				x: xPos,
+				y: yPos,
+				id,
+				unit: positionUnit,
+				anchor: shapeAnchor
+			});
+		} else if (shape === 'trapezoidX') {
+			return shapes.trapezoidX({
+				leftHeight: params.leftHeight,
+				rightHeight: params.rightHeight,
+				width: params.width,
 				x: xPos,
 				y: yPos,
 				id,
