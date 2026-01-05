@@ -12,6 +12,8 @@
 	import { setUnitConfig, getUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
 	import { setup3DCanvas, render3DGeometry } from '$lib/jscad/3dCanvas';
 	import * as THREE from 'three';
+	import { exportGroupToSTL } from '$lib/utils/stlExporter';
+	import { serializeToSvg } from '$lib/utils/svgSerializer';
 
 	let canvasEl: HTMLCanvasElement;
 	let canvas3d: HTMLCanvasElement;
@@ -127,6 +129,28 @@
 		refreshGeometry();
 	}
 
+	function handleExport() {
+		if (!scene) return;
+		const meshes = scene.children.filter(
+			(child) => child instanceof THREE.Mesh && !(child.material as THREE.Material).wireframe
+		) as THREE.Mesh[];
+		if (meshes.length === 0) return;
+		const group = new THREE.Group();
+		meshes.forEach((mesh) => group.add(mesh.clone()));
+		const filename = `${currentPartId}_${extrusionHeight}mm.stl`;
+		exportGroupToSTL(group, filename);
+	}
+
+	function handleSvgExport() {
+		const svgString = serializeToSvg(geometry);
+		const blob = new Blob([svgString], { type: 'image/svg+xml' });
+		const link = document.createElement('a');
+		link.href = URL.createObjectURL(blob);
+		link.download = `${currentPartId}.svg`;
+		link.click();
+		URL.revokeObjectURL(link.href);
+	}
+
 	// Reactive update for 3D when height changes
 	$: if (extrusionHeight && scene) {
 		render3DGeometry(scene, geometry, extrusionHeight);
@@ -183,6 +207,7 @@
 			<canvas bind:this={canvasEl} width="800" height="600"></canvas>
 			<div class="controls">
 				<small>Scroll to zoom • Alt+drag to pan</small>
+				<button class="export-svg-button" on:click={handleSvgExport}>Export SVG</button>
 			</div>
 		</div>
 		<div class="view-3d">
@@ -197,6 +222,7 @@
 					step="0.5"
 					bind:value={extrusionHeight}
 				/>
+				<button class="export-button" on:click={handleExport}>Export STL</button>
 			</div>
 		</div>
 	</div>
@@ -358,14 +384,34 @@
 		appearance: none;
 	}
 
-	.controls-3d input[type='range']::-webkit-slider-thumb {
-		-webkit-appearance: none;
-		appearance: none;
-		width: 16px;
-		height: 16px;
-		border-radius: 50%;
-		background: #4a9eff;
+	.export-button {
+		background-color: #4a9eff;
+		color: #fff;
+		border: none;
+		padding: 8px 16px;
+		border-radius: 4px;
 		cursor: pointer;
+		font-size: 14px;
+		margin-top: 10px;
+	}
+
+	.export-button:hover {
+		background-color: #5aafff;
+	}
+
+	.export-svg-button {
+		background-color: #10b981;
+		color: #fff;
+		border: none;
+		padding: 6px 12px;
+		border-radius: 4px;
+		cursor: pointer;
+		font-size: 12px;
+		margin-left: 10px;
+	}
+
+	.export-svg-button:hover {
+		background-color: #059669;
 	}
 
 	h1 {

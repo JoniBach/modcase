@@ -33,24 +33,14 @@ export function jscadToThreeGeometry(geom3Param: any): THREE.BufferGeometry {
 
 		if (numVertices < 3) continue;
 
-		// Fan triangulation: use first vertex as center
-		const centerVertex = vertices[0];
-		const centerIndex = vertexIndex++;
-
-		// Add center vertex
-		positions.push(centerVertex[0], centerVertex[1], centerVertex[2]);
-
-		// Add other vertices
-		for (let i = 1; i < numVertices; i++) {
-			const v = vertices[i];
-			positions.push(v[0], v[1], v[2]);
-			indices.push(centerIndex, vertexIndex - 1, vertexIndex);
+		const firstVertex = vertexIndex;
+		vertices.forEach((vertex: any, i: number) => {
+			positions.push(vertex[0], vertex[1], vertex[2]);
+			if (i >= 2) {
+				indices.push(firstVertex, vertexIndex - 1, vertexIndex);
+			}
 			vertexIndex++;
-		}
-		// Close the fan
-		const firstOtherIndex = centerIndex + 1;
-		const lastIndex = vertexIndex - 1;
-		indices.push(centerIndex, lastIndex, firstOtherIndex);
+		});
 	}
 
 	geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));

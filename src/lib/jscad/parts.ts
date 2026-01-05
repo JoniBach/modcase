@@ -1,3 +1,4 @@
+import { pattern } from './pattern';
 import { shapes } from './shapes';
 import { tools } from './tools';
 
@@ -279,172 +280,16 @@ export const squareWithHoles = () =>
 		]
 	});
 
-export const extrusion2020 = (
-	params: {
-		outerSlotWidth?: string;
-		innerSlotWidth?: string;
-		slotHeight?: string;
-		slotDepth?: string;
-		profileSize?: string;
-		centerHoleRadius?: string;
-		centerPos?: string;
-	} = {}
-) => {
-	const {
-		outerSlotWidth = '11',
-		innerSlotWidth = '7.2',
-		slotHeight = '1.8',
-		slotDepth = '2',
-		profileSize = '20',
-		centerHoleRadius = '3'
-	} = params;
-	const centerPos = profileSize / 2;
-	return tools.json({
-		operation: 'subtract',
-		ops: [
-			{
-				shape: 'rectangle',
-				params: { width: profileSize, height: profileSize, x: '0', y: '0' },
-				id: 'square',
-				anchor: { x: 0, y: 0 },
-				unit: 'mm'
-			},
-			{
-				shape: 'circle',
-				params: { radius: centerHoleRadius, x: centerPos, y: centerPos },
-				id: 'center-hole',
-				unit: 'mm',
-				relativeTo: 'square',
-				anchor: { x: 50, y: 50 }
-			},
-			// TOP SIDE
-			{
-				shape: 'rectangle',
-				params: { width: innerSlotWidth, height: slotHeight, x: centerPos, y: profileSize },
-				id: 'a',
-				anchor: 'top-center',
-				unit: 'mm',
-				relativeTo: 'square'
-			},
-			{
-				shape: 'rectangle',
-				params: { width: outerSlotWidth, height: slotHeight, x: '0', y: `-${slotHeight}` },
-				id: 'b',
-				anchor: 'top-center',
-				unit: 'mm',
-				relativeTo: 'a'
-			},
-			{
-				shape: 'trapezoidY',
-				params: {
-					bottomWidth: innerSlotWidth,
-					topWidth: outerSlotWidth,
-					height: slotDepth,
-					x: '0',
-					y: `-${slotHeight}`
-				},
-				id: 'trapezoid-under-b',
-				anchor: 'top-center',
-				unit: 'mm',
-				relativeTo: 'b'
-			},
-			// BOTTOM SIDE
-			{
-				shape: 'rectangle',
-				params: { width: innerSlotWidth, height: slotHeight, x: centerPos, y: '0' },
-				id: 'c',
-				anchor: 'bottom-center',
-				unit: 'mm',
-				relativeTo: 'square'
-			},
-			{
-				shape: 'rectangle',
-				params: { width: outerSlotWidth, height: slotHeight, x: '0', y: slotHeight },
-				id: 'd',
-				anchor: 'bottom-center',
-				unit: 'mm',
-				relativeTo: 'c'
-			},
-			{
-				shape: 'trapezoidY',
-				params: {
-					bottomWidth: outerSlotWidth,
-					topWidth: innerSlotWidth,
-					height: slotDepth,
-					x: '0',
-					y: slotHeight
-				},
-				id: 'trapezoid-above-d',
-				anchor: 'bottom-center',
-				unit: 'mm',
-				relativeTo: 'd'
-			},
-			// LEFT SIDE
-			{
-				shape: 'rectangle',
-				params: { width: slotHeight, height: innerSlotWidth, x: '0', y: centerPos },
-				id: 'e',
-				anchor: 'left-center',
-				unit: 'mm',
-				relativeTo: 'square'
-			},
-			{
-				shape: 'rectangle',
-				params: { width: slotHeight, height: outerSlotWidth, x: slotHeight, y: '0' },
-				id: 'f',
-				anchor: 'left-center',
-				unit: 'mm',
-				relativeTo: 'e'
-			},
-			{
-				shape: 'trapezoidX',
-				params: {
-					width: slotDepth,
-					leftHeight: outerSlotWidth,
-					rightHeight: innerSlotWidth,
-					x: slotHeight,
-					y: '0',
-					orientation: 'horizontal'
-				},
-				id: 'g',
-				anchor: 'left-center',
-				unit: 'mm',
-				relativeTo: 'f'
-			},
-			// RIGHT SIDE
-			{
-				shape: 'rectangle',
-				params: { width: slotHeight, height: innerSlotWidth, x: profileSize, y: centerPos },
-				id: 'h',
-				anchor: 'right-center',
-				unit: 'mm',
-				relativeTo: 'square'
-			},
-			{
-				shape: 'rectangle',
-				params: { width: slotHeight, height: outerSlotWidth, x: `-${slotHeight}`, y: '0' },
-				id: 'i',
-				anchor: 'right-center',
-				unit: 'mm',
-				relativeTo: 'h'
-			},
-			{
-				shape: 'trapezoidX',
-				params: {
-					width: slotDepth,
-					leftHeight: innerSlotWidth,
-					rightHeight: outerSlotWidth,
-					x: `-${slotHeight}`,
-					y: '0',
-					orientation: 'horizontal'
-				},
-				id: 'j',
-				anchor: 'right-center',
-				unit: 'mm',
-				relativeTo: 'i'
-			}
-		]
-	});
+export const extrusion2020 = () => {
+	const params = {
+		size: '20',
+		outerSlotWidth: '11',
+		innerCavityWidth: '7.2',
+		wallThickness: '1.8',
+		webDepth: '2',
+		boreRadius: '3'
+	};
+	return pattern.extrusion(params);
 };
 
 export const parts = {
