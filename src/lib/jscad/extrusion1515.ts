@@ -1,4 +1,5 @@
 import pkg from '@jscad/modeling';
+import type { Geom3, Poly3 } from '@jscad/modeling';
 import { parseSTL } from '$lib/utils/stlParser';
 
 const { geometries } = pkg;
@@ -18,27 +19,16 @@ export async function createExtrusion1515() {
 	return stlDataToJSCAD(stlData);
 }
 
-function stlDataToJSCAD(stlData: any): any {
-	const polygons: any[] = [];
+function stlDataToJSCAD(stlData: unknown): Geom3 {
+	const polygons: Poly3[] = [];
+	const stl = stlData as { triangleCount: number; vertices: number[] };
 
-	for (let i = 0; i < stlData.triangleCount; i++) {
+	for (let i = 0; i < stl.triangleCount; i++) {
 		const baseIndex = i * 9;
 		const vertices = [
-			[
-				stlData.vertices[baseIndex],
-				stlData.vertices[baseIndex + 1],
-				stlData.vertices[baseIndex + 2]
-			],
-			[
-				stlData.vertices[baseIndex + 3],
-				stlData.vertices[baseIndex + 4],
-				stlData.vertices[baseIndex + 5]
-			],
-			[
-				stlData.vertices[baseIndex + 6],
-				stlData.vertices[baseIndex + 7],
-				stlData.vertices[baseIndex + 8]
-			]
+			[stl.vertices[baseIndex], stl.vertices[baseIndex + 1], stl.vertices[baseIndex + 2]],
+			[stl.vertices[baseIndex + 3], stl.vertices[baseIndex + 4], stl.vertices[baseIndex + 5]],
+			[stl.vertices[baseIndex + 6], stl.vertices[baseIndex + 7], stl.vertices[baseIndex + 8]]
 		];
 
 		polygons.push({ vertices });

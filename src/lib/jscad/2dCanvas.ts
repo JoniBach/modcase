@@ -1,6 +1,6 @@
 import { Canvas, Rect, Line, loadSVGFromString, Text, Point } from 'fabric';
-import type { TPointerEventInfo, TPointerEvent, WheelEvent } from 'fabric';
-import { serializeToSvg } from '$lib/utils/svgSerializer';
+import type { TPointerEventInfo, TPointerEvent, Object as FabricObject } from 'fabric';
+import { serializeToSvg } from '$lib/jscad/fileExports';
 import { getUnitConfig, formatValue } from './units';
 
 let renderVersion = 0;
@@ -15,8 +15,8 @@ export const addGrid = (canvas: Canvas) => {
 	// Remove existing grid
 	canvas
 		.getObjects()
-		.filter((obj: any) => obj.isGrid)
-		.forEach((obj: any) => canvas.remove(obj));
+		.filter((obj: FabricObject) => (obj as FabricObject & { isGrid?: boolean }).isGrid)
+		.forEach((obj: FabricObject) => canvas.remove(obj));
 
 	const unitsPerGrid = config.gridSpacing;
 	for (let i = -extent; i <= extent; i++) {
@@ -80,13 +80,13 @@ export const addGrid = (canvas: Canvas) => {
 	canvas.renderAll();
 };
 
-export const renderGeometry = (canvas: Canvas, geom: any) => {
+export const renderGeometry = (canvas: Canvas, geom: unknown) => {
 	renderVersion++;
 	const myVersion = renderVersion;
 
 	// Clear existing geometry
-	canvas.getObjects().forEach((obj: any) => {
-		if (!obj.isGrid) canvas.remove(obj);
+	canvas.getObjects().forEach((obj: FabricObject) => {
+		if (!(obj as FabricObject & { isGrid?: boolean }).isGrid) canvas.remove(obj);
 	});
 	canvas.renderAll(); // Immediately render the cleared state
 
@@ -95,12 +95,12 @@ export const renderGeometry = (canvas: Canvas, geom: any) => {
 
 	// Load SVG into fabric
 	loadSVGFromString(svgString)
-		.then((result: any) => {
+		.then((result: { objects: FabricObject[] }) => {
 			if (renderVersion !== myVersion) return; // Ignore if a newer render started
 
 			const config = getUnitConfig();
 			const scaleFactor = 50 / config.gridSpacing;
-			result.objects.forEach((obj: any) => {
+			result.objects.forEach((obj: FabricObject) => {
 				// Scale and position the objects appropriately
 				obj.scale(scaleFactor);
 				obj.set({
@@ -114,7 +114,7 @@ export const renderGeometry = (canvas: Canvas, geom: any) => {
 			});
 			canvas.renderAll();
 		})
-		.catch((error: any) => {
+		.catch((error: unknown) => {
 			if (renderVersion !== myVersion) return; // Ignore if a newer render started
 
 			console.error('Error loading SVG:', error);
@@ -141,21 +141,21 @@ export const enablePanZoom = (canvas: Canvas) => {
 	let lastX: number, lastY: number;
 
 	canvas.on('mouse:down', (opt: TPointerEventInfo<TPointerEvent>) => {
-		if (opt.e.altKey || opt.e.button === 1) {
+		if ((opt.e as PointerEvent).altKey || (opt.e as PointerEvent).button === 1) {
 			isPanning = true;
-			lastX = opt.e.clientX;
-			lastY = opt.e.clientY;
+			lastX = (opt.e as PointerEvent).clientX;
+			lastY = (opt.e as PointerEvent).clientY;
 		}
 	});
 
 	canvas.on('mouse:move', (opt: TPointerEventInfo<TPointerEvent>) => {
 		if (isPanning) {
 			const vpt = canvas.viewportTransform;
-			vpt[4] += opt.e.clientX - lastX;
-			vpt[5] += opt.e.clientY - lastY;
+			vpt[4] += (opt.e as PointerEvent).clientX - lastX;
+			vpt[5] += (opt.e as PointerEvent).clientY - lastY;
 			canvas.requestRenderAll();
-			lastX = opt.e.clientX;
-			lastY = opt.e.clientY;
+			lastX = (opt.e as PointerEvent).clientX;
+			lastY = (opt.e as PointerEvent).clientY;
 		}
 	});
 
@@ -167,13 +167,16 @@ export const enablePanZoom = (canvas: Canvas) => {
 	});
 
 	canvas.on('mouse:wheel', (opt: TPointerEventInfo<WheelEvent>) => {
-		const delta = opt.e.deltaY;
+		const delta = (opt.e as WheelEvent).deltaY;
 		let zoom = canvas.getZoom();
 		zoom *= 0.999 ** delta;
 		zoom = Math.max(0.1, zoom);
-		canvas.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), zoom);
-		opt.e.preventDefault();
-		opt.e.stopPropagation();
+		canvas.zoomToPoint(
+			new Point((opt.e as WheelEvent).offsetX, (opt.e as WheelEvent).offsetY),
+			zoom
+		);
+		(opt.e as WheelEvent).preventDefault();
+		(opt.e as WheelEvent).stopPropagation();
 		addGrid(canvas);
 	});
 };

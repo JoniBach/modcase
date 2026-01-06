@@ -2,18 +2,15 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { Canvas, Point } from 'fabric';
+	import { Canvas } from 'fabric';
 	import { partList, parts } from '$lib/jscad/parts';
 	import { toolList } from '$lib/jscad/tools';
 	import { shapeList } from '$lib/jscad/shapes';
-	import { rectangle, circle } from '$lib/jscad/shapes';
-	import { tools } from '$lib/jscad/tools';
 	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
-	import { setUnitConfig, getUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
+	import { setUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
 	import { setup3DCanvas, render3DGeometry } from '$lib/jscad/3dCanvas';
 	import * as THREE from 'three';
-	import { exportGroupToSTL } from '$lib/utils/stlExporter';
-	import { serializeToSvg } from '$lib/utils/svgSerializer';
+	import { fileExports } from '$lib/jscad/fileExports';
 
 	let canvasEl: HTMLCanvasElement;
 	let canvas3d: HTMLCanvasElement;
@@ -38,54 +35,75 @@
 	function initializeFromUrl() {
 		const urlParams = get(page).url.searchParams;
 
-		// Load part from URL
-		const partParam = urlParams.get('part');
-		if (partParam && partList.some((p) => p.id === partParam)) {
-			currentPartId = partParam;
-			geometry = parts[currentPartId as keyof typeof parts]();
-		}
-
-		// Load unit from URL
-		const unitParam = urlParams.get('unit');
-		if (unitParam && unitsList.includes(unitParam as Unit)) {
-			selectedUnit = unitParam as Unit;
-		}
-
-		// Load height from URL
-		const heightParam = urlParams.get('height');
-		if (heightParam) {
-			const h = parseFloat(heightParam);
-			if (!isNaN(h) && h >= 1 && h <= 20) {
-				extrusionHeight = h;
+		// Parameter configurations for DRY loading
+		const paramConfigs = [
+			{
+				key: 'part',
+				validator: (s: string) => (partList.some((p) => p.id === s) ? s : null),
+				setter: (v: string) => {
+					currentPartId = v;
+					geometry = parts[v as keyof typeof parts]();
+				}
+			},
+			{
+				key: 'unit',
+				validator: (s: string) => (unitsList.includes(s as Unit) ? (s as Unit) : null),
+				setter: (v: Unit) => {
+					selectedUnit = v;
+				}
+			},
+			{
+				key: 'height',
+				validator: (s: string) => {
+					const h = parseFloat(s);
+					return !isNaN(h) && h >= 1 && h <= 20 ? h : null;
+				},
+				setter: (v: number) => {
+					extrusionHeight = v;
+				}
+			},
+			{
+				key: 'zoom',
+				validator: (s: string) => {
+					const z = parseFloat(s);
+					return !isNaN(z) && z >= 0.1 ? z : null;
+				},
+				setter: (v: number) => {
+					currentZoom = v;
+				}
+			},
+			{
+				key: 'panX',
+				validator: (s: string) => {
+					const x = parseFloat(s);
+					return !isNaN(x) ? x : null;
+				},
+				setter: (v: number) => {
+					panX = v;
+				}
+			},
+			{
+				key: 'panY',
+				validator: (s: string) => {
+					const y = parseFloat(s);
+					return !isNaN(y) ? y : null;
+				},
+				setter: (v: number) => {
+					panY = v;
+				}
 			}
-		}
+		];
 
-		// Load zoom from URL
-		const zoomParam = urlParams.get('zoom');
-		if (zoomParam) {
-			const z = parseFloat(zoomParam);
-			if (!isNaN(z) && z >= 0.1) {
-				currentZoom = z;
+		// Load each parameter using the configs
+		paramConfigs.forEach((config) => {
+			const value = urlParams.get(config.key);
+			if (value) {
+				const parsed = config.validator(value);
+				if (parsed !== null) {
+					config.setter(parsed);
+				}
 			}
-		}
-
-		// Load panX from URL
-		const panXParam = urlParams.get('panX');
-		if (panXParam) {
-			const x = parseFloat(panXParam);
-			if (!isNaN(x)) {
-				panX = x;
-			}
-		}
-
-		// Load panY from URL
-		const panYParam = urlParams.get('panY');
-		if (panYParam) {
-			const y = parseFloat(panYParam);
-			if (!isNaN(y)) {
-				panY = y;
-			}
-		}
+		});
 	}
 
 	// Update URL with current parameters
@@ -184,28 +202,6 @@
 		refreshGeometry();
 	}
 
-	function handleExport() {
-		if (!scene) return;
-		const meshes = scene.children.filter(
-			(child) => child instanceof THREE.Mesh && !(child.material as any).wireframe
-		) as THREE.Mesh[];
-		if (meshes.length === 0) return;
-		const group = new THREE.Group();
-		meshes.forEach((mesh) => group.add(mesh.clone()));
-		const filename = `${currentPartId}_${extrusionHeight}mm.stl`;
-		exportGroupToSTL(group, filename);
-	}
-
-	function handleSvgExport() {
-		const svgString = serializeToSvg(geometry);
-		const blob = new Blob([svgString], { type: 'image/svg+xml' });
-		const link = document.createElement('a');
-		link.href = URL.createObjectURL(blob);
-		link.download = `${currentPartId}.svg`;
-		link.click();
-		URL.revokeObjectURL(link.href);
-	}
-
 	// Reactive update for 3D when height changes
 	$: if (extrusionHeight && scene) {
 		render3DGeometry(scene, geometry, extrusionHeight);
@@ -221,16 +217,17 @@
 	<div class="menu">
 		<h2>export</h2>
 		<p
-			on:click={handleExport}
-			on:keypress={(e) => e.key === 'Enter' && handleExport()}
+			on:click={() => fileExports.stl({ children: scene.children, partId: currentPartId })}
+			on:keypress={(e) =>
+				e.key === 'Enter' && fileExports.stl({ children: scene.children, partId: currentPartId })}
 			role="button"
 			tabindex="0"
 		>
 			STL
 		</p>
 		<p
-			on:click={handleSvgExport}
-			on:keypress={(e) => e.key === 'Enter' && handleSvgExport()}
+			on:click={() => fileExports.svg({ geometry, partId: currentPartId })}
+			on:keypress={(e) => e.key === 'Enter' && fileExports.svg({ geometry, partId: currentPartId })}
 			role="button"
 			tabindex="0"
 		>
