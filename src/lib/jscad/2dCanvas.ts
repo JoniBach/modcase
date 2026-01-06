@@ -1,13 +1,12 @@
 import { Canvas, Rect, Line, loadSVGFromString, Text, Point } from 'fabric';
 import type { TPointerEventInfo, TPointerEvent, Object as FabricObject } from 'fabric';
 import { serializeToSvg } from '$lib/jscad/fileExports';
-import { getUnitConfig, formatValue } from './units';
+import { formatValue } from './units';
 
 let renderVersion = 0;
 
 export const addGrid = (canvas: Canvas) => {
 	const zoom = canvas.getZoom();
-	const config = getUnitConfig();
 	const gridSize = 50;
 	const extent = Math.ceil(20 / zoom);
 	const gridLines: (Line | Text)[] = [];
@@ -18,7 +17,7 @@ export const addGrid = (canvas: Canvas) => {
 		.filter((obj: FabricObject) => (obj as FabricObject & { isGrid?: boolean }).isGrid)
 		.forEach((obj: FabricObject) => canvas.remove(obj));
 
-	const unitsPerGrid = config.gridSpacing;
+	const unitsPerGrid = 10;
 	for (let i = -extent; i <= extent; i++) {
 		// Vertical lines
 		gridLines.push(
@@ -47,7 +46,7 @@ export const addGrid = (canvas: Canvas) => {
 			const tx = vpt[4];
 			const ty = vpt[5];
 			const unitValue = i * unitsPerGrid;
-			const label = formatValue(unitValue, config.defaultUnit, 0);
+			const label = formatValue(unitValue, 'mm', 0);
 			// X-axis label (at grid x, screen top)
 			const xLabel = new Text(label, {
 				left: i * gridSize,
@@ -95,23 +94,24 @@ export const renderGeometry = (canvas: Canvas, geom: unknown) => {
 
 	// Load SVG into fabric
 	loadSVGFromString(svgString)
-		.then((result: { objects: FabricObject[] }) => {
+		.then((result) => {
 			if (renderVersion !== myVersion) return; // Ignore if a newer render started
 
-			const config = getUnitConfig();
-			const scaleFactor = 50 / config.gridSpacing;
-			result.objects.forEach((obj: FabricObject) => {
-				// Scale and position the objects appropriately
-				obj.scale(scaleFactor);
-				obj.set({
-					left: 0,
-					top: 0,
-					selectable: false,
-					originX: 'left',
-					originY: 'bottom'
+			const scaleFactor = 5;
+			result.objects
+				.filter((obj) => obj !== null)
+				.forEach((obj: FabricObject) => {
+					// Scale and position the objects appropriately
+					obj.scale(scaleFactor);
+					obj.set({
+						left: 0,
+						top: 0,
+						selectable: false,
+						originX: 'left',
+						originY: 'bottom'
+					});
+					canvas.add(obj);
 				});
-				canvas.add(obj);
-			});
 			canvas.renderAll();
 		})
 		.catch((error: unknown) => {

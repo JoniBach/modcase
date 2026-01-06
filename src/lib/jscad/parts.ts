@@ -12,12 +12,12 @@ export const example1 = () =>
 		ops: [
 			tools.subtract({
 				ops: [
-					shapes.rectangle({ width: '10', height: '10', x: '0', y: '0', id: 'a' }),
-					shapes.circle({ radius: '3', x: '5', y: '5', id: 'b' }),
-					shapes.circle({ radius: '2', x: '-1', y: '-1', id: 'c' })
+					shapes.rectangle({ width: '10mm', height: '10mm', x: '0mm', y: '0mm', id: 'a' }),
+					shapes.circle({ radius: '3mm', x: '5mm', y: '5mm', id: 'b' }),
+					shapes.circle({ radius: '2mm', x: '-1mm', y: '-1mm', id: 'c' })
 				]
 			}),
-			shapes.circle({ radius: '1', x: '5', y: '5', id: 'd' })
+			shapes.circle({ radius: '1mm', x: '5mm', y: '5mm', id: 'd' })
 		]
 	});
 
@@ -28,12 +28,16 @@ export const example2 = () =>
 			{
 				operation: 'subtract',
 				ops: [
-					{ shape: 'rectangle', params: { width: '10', height: '10', x: '0', y: '0' }, id: 'a' },
-					{ shape: 'circle', params: { radius: '3', x: '5', y: '5' }, id: 'b' },
-					{ shape: 'circle', params: { radius: '2', x: '-1', y: '-1' }, id: 'c' }
+					{
+						shape: 'rectangle',
+						params: { width: '10mm', height: '10mm', x: '0mm', y: '0mm' },
+						id: 'a'
+					},
+					{ shape: 'circle', params: { radius: '3mm', x: '5mm', y: '5mm' }, id: 'b' },
+					{ shape: 'circle', params: { radius: '2mm', x: '-1mm', y: '-1mm' }, id: 'c' }
 				]
 			},
-			{ shape: 'circle', params: { radius: '1', x: '5', y: '5' }, id: 'd' }
+			{ shape: 'circle', params: { radius: '1mm', x: '5mm', y: '5mm' }, id: 'd' }
 		]
 	});
 
@@ -43,21 +47,18 @@ export const mixedUnits = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '50', height: '30', x: '0', y: '0' },
-				id: 'base',
-				unit: 'mm'
+				params: { width: '50mm', height: '30mm', x: '0mm', y: '0mm' },
+				id: 'base'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '0.5', x: '1', y: '0.5' },
-				id: 'hole1',
-				unit: 'in'
+				params: { radius: '0.5in', x: '1in', y: '0.5in' },
+				id: 'hole1'
 			},
 			{
 				shape: 'rectangle',
-				params: { width: '2cm', height: '1cm', x: '-15', y: '-10' },
-				id: 'feature',
-				unit: 'mm'
+				params: { width: '2cm', height: '1cm', x: '-15mm', y: '-10mm' },
+				id: 'feature'
 			}
 		]
 	});
@@ -68,23 +69,20 @@ export const anchorDemo = () =>
 		ops: [
 			{
 				shape: 'circle',
-				params: { radius: '8', x: '0', y: '0' },
+				params: { radius: '8mm', x: '0mm', y: '0mm' },
 				id: 'marker-at-origin',
-				unit: 'mm',
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '6', x: '0', y: '0' },
+				params: { radius: '6mm', x: '0mm', y: '0mm' },
 				id: 'marker-bottom-left',
-				unit: 'mm',
 				anchor: 'bottom-left'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '10', x: '0', y: '0' },
+				params: { radius: '10mm', x: '0mm', y: '0mm' },
 				id: 'marker-top-right',
-				unit: 'mm',
 				anchor: 'top-right'
 			}
 		]
@@ -96,23 +94,20 @@ export const anchorPercentage = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '50', height: '30', x: '0', y: '0' },
+				params: { width: '50mm', height: '30mm', x: '0mm', y: '0mm' },
 				id: 'base',
-				unit: 'mm',
 				anchor: [50, 50]
 			},
 			{
 				shape: 'rectangle',
-				params: { width: '20', height: '10', x: '30', y: '0' },
+				params: { width: '20mm', height: '10mm', x: '30mm', y: '0mm' },
 				id: 'custom-percent',
-				unit: 'mm',
 				anchor: [25, 75]
 			},
 			{
 				shape: 'circle',
-				params: { radius: '8', x: '-30', y: '0' },
+				params: { radius: '8mm', x: '-30mm', y: '0mm' },
 				id: 'absolute-anchor',
-				unit: 'mm',
 				anchor: { x: '5mm', y: '5mm' }
 			}
 		]
@@ -124,22 +119,19 @@ export const relativePositioning = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '40', height: '30', x: '0', y: '0' },
-				id: 'base',
-				unit: 'mm'
+				params: { width: '40mm', height: '30mm', x: '0mm', y: '0mm' },
+				id: 'base'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '5', x: '10', y: '5' },
+				params: { radius: '5mm', x: '10mm', y: '5mm' },
 				id: 'circle1',
-				unit: 'mm',
 				relativeTo: 'base'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '3', x: '15', y: '0' },
+				params: { radius: '3mm', x: '15mm', y: '0mm' },
 				id: 'circle2',
-				unit: 'mm',
 				relativeTo: 'circle1'
 			}
 		]
@@ -151,29 +143,25 @@ export const relativeChain = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '20', height: '20', x: '-30', y: '-30' },
-				id: 'rectA',
-				unit: 'mm'
+				params: { width: '20mm', height: '20mm', x: '-30mm', y: '-30mm' },
+				id: 'rectA'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '8', x: '25', y: '0' },
+				params: { radius: '8mm', x: '25mm', y: '0mm' },
 				id: 'circleB',
-				unit: 'mm',
 				relativeTo: 'rectA'
 			},
 			{
 				shape: 'rectangle',
-				params: { width: '15', height: '15', x: '20', y: '0' },
+				params: { width: '15mm', height: '15mm', x: '20mm', y: '0mm' },
 				id: 'rectC',
-				unit: 'mm',
 				relativeTo: 'circleB'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '5', x: '0', y: '20' },
+				params: { radius: '5mm', x: '0mm', y: '20mm' },
 				id: 'circleD',
-				unit: 'mm',
 				relativeTo: 'rectC'
 			}
 		]
@@ -185,43 +173,37 @@ export const mixedPositioning = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '50', height: '40', x: '0', y: '0' },
-				id: 'plate',
-				unit: 'mm'
+				params: { width: '50mm', height: '40mm', x: '0mm', y: '0mm' },
+				id: 'plate'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: '10', y: '10' },
+				params: { radius: '4mm', x: '10mm', y: '10mm' },
 				id: 'hole1',
-				unit: 'mm',
 				relativeTo: 'plate'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: '-10', y: '10' },
+				params: { radius: '4mm', x: '-10mm', y: '10mm' },
 				id: 'hole2',
-				unit: 'mm',
 				relativeTo: 'plate'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: '10', y: '-10' },
+				params: { radius: '4mm', x: '10mm', y: '-10mm' },
 				id: 'hole3',
-				unit: 'mm',
 				relativeTo: 'plate'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: '-10', y: '-10' },
+				params: { radius: '4mm', x: '-10mm', y: '-10mm' },
 				id: 'hole4',
-				unit: 'mm',
 				relativeTo: 'plate'
 			},
 			{
 				shape: 'rectangle',
-				params: { width: '10', height: '10', x: '-40', y: '0' },
-				id: 'absolute-feature',
-				unit: 'mm'
+				params: { width: '10mm', height: '10mm', x: '-40mm', y: '0mm' },
+				id: 'absolute-feature'
 			}
 		]
 	});
@@ -232,48 +214,42 @@ export const squareWithHoles = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '40', height: '40', x: '0', y: '0' },
+				params: { width: '40mm', height: '40mm', x: '0mm', y: '0mm' },
 				id: 'square',
-				anchor: { x: 0, y: 0 },
-				unit: 'mm'
+				anchor: { x: '0mm', y: '0mm' }
 			},
 			{
 				shape: 'circle',
-				params: { radius: '8', x: 20, y: 20 },
+				params: { radius: '8mm', x: '20mm', y: '20mm' },
 				id: 'center-hole',
-				unit: 'mm',
 				relativeTo: 'square',
 				anchor: { x: 50, y: 50 }
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: -15, y: 15 },
+				params: { radius: '4mm', x: '-15mm', y: '15mm' },
 				id: 'top-left-hole',
-				unit: 'mm',
 				relativeTo: 'center-hole',
 				anchor: { x: 50, y: 50 }
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: 15, y: 15 },
+				params: { radius: '4mm', x: '15mm', y: '15mm' },
 				id: 'top-right-hole',
-				unit: 'mm',
 				relativeTo: 'center-hole',
 				anchor: { x: 50, y: 50 }
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: -15, y: -15 },
+				params: { radius: '4mm', x: '-15mm', y: '-15mm' },
 				id: 'bottom-left-hole',
-				unit: 'mm',
 				relativeTo: 'center-hole',
 				anchor: { x: 50, y: 50 }
 			},
 			{
 				shape: 'circle',
-				params: { radius: '4', x: 15, y: -15 },
+				params: { radius: '4mm', x: '15mm', y: '-15mm' },
 				id: 'bottom-right-hole',
-				unit: 'mm',
 				relativeTo: 'center-hole',
 				anchor: { x: 50, y: 50 }
 			}
@@ -282,12 +258,12 @@ export const squareWithHoles = () =>
 
 export const extrusion2020 = () => {
 	const params = {
-		size: '20',
-		outerSlotWidth: '11',
-		innerCavityWidth: '7.2',
-		wallThickness: '1.8',
-		webDepth: '2',
-		boreRadius: '3'
+		size: '20mm',
+		outerSlotWidth: '11mm',
+		innerCavityWidth: '7.2mm',
+		wallThickness: '1.8mm',
+		webDepth: '2mm',
+		boreRadius: '3mm'
 	};
 	return pattern.extrusion(params);
 };
@@ -298,168 +274,146 @@ export const atxPlate = () =>
 		ops: [
 			{
 				shape: 'rectangle',
-				params: { width: '304.8mm', height: '243.84mm', x: '0', y: '0' },
+				params: { width: '304.8mm', height: '243.84mm', x: '0mm', y: '0mm' },
 				id: 'atx',
-				anchor: { x: 0, y: 0 },
-				unit: 'mm'
+				anchor: { x: 0, y: 0 }
 			},
 			// rows
 			{
 				shape: 'ref',
-				params: { x: 0, y: 10.16 },
+				params: { x: '0mm', y: '10.16mm' },
 				id: 'row-1',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 0, y: 33.02 },
+				params: { x: '0mm', y: '33.02mm' },
 				id: 'row-2',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 0, y: 165.1 },
+				params: { x: '0mm', y: '165.1mm' },
 				id: 'row-3',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 0, y: 237.49 },
+				params: { x: '0mm', y: '237.49mm' },
 				id: 'row-4',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			// columns
 			{
 				shape: 'ref',
-				params: { x: 6.35, y: 0 },
+				params: { x: '6.35mm', y: '0mm' },
 				id: 'col-1',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 163.83, y: 0 },
+				params: { x: '163.83mm', y: '0mm' },
 				id: 'col-2',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 209.55, y: 0 },
+				params: { x: '209.55mm', y: '0mm' },
 				id: 'col-3',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 229.87, y: 0 },
+				params: { x: '229.87mm', y: '0mm' },
 				id: 'col-4',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			{
 				shape: 'ref',
-				params: { x: 288.29, y: 0 },
+				params: { x: '288.29mm', y: '0mm' },
 				id: 'col-5',
-				unit: 'mm',
 				relativeTo: 'atx',
 				anchor: 'center'
 			},
 			// holes
 			{
 				shape: 'circle',
-				params: { radius: '2', x: 'col-2', y: 'row-1' },
+				params: { radius: '2mm', x: 'col-2', y: 'row-1' },
 				id: 'hole-2-1',
-				unit: 'mm',
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '2', x: 'col-3', y: 'row-1' },
+				params: { radius: '2mm', x: 'col-3', y: 'row-1' },
 				id: 'hole-3-1',
-				unit: 'mm',
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
-				params: { radius: '2', x: 'col-5', y: 'row-1' },
+				params: { radius: '2mm', x: 'col-5', y: 'row-1' },
 				id: 'hole-5-1',
-				unit: 'mm',
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-1-2',
-				params: { radius: '2', x: 'col-1', y: 'row-2' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-1', y: 'row-2' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-1-3',
-				params: { radius: '2', x: 'col-1', y: 'row-3' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-1', y: 'row-3' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-2-3',
-				params: { radius: '2', x: 'col-2', y: 'row-3' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-2', y: 'row-3' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-3-3',
-				params: { radius: '2', x: 'col-3', y: 'row-3' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-3', y: 'row-3' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-4-3',
-				params: { radius: '2', x: 'col-4', y: 'row-3' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-4', y: 'row-3' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-5-3',
-				params: { radius: '2', x: 'col-5', y: 'row-3' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-5', y: 'row-3' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-1-4',
-				params: { radius: '2', x: 'col-1', y: 'row-4' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-1', y: 'row-4' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-2-4',
-				params: { radius: '2', x: 'col-2', y: 'row-4' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-2', y: 'row-4' },
 				anchor: 'center'
 			},
 			{
 				shape: 'circle',
 				id: 'hole-5-4',
-				params: { radius: '2', x: 'col-5', y: 'row-4' },
-				unit: 'mm',
+				params: { radius: '2mm', x: 'col-5', y: 'row-4' },
 				anchor: 'center'
 			}
 		]

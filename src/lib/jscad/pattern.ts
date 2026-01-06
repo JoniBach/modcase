@@ -1,4 +1,5 @@
 import { tools } from './tools';
+import { parseValueWithUnit } from './units';
 
 const extrusion = (params: {
 	size?: string;
@@ -10,7 +11,8 @@ const extrusion = (params: {
 }) => {
 	const { size, outerSlotWidth, innerCavityWidth, wallThickness, webDepth, boreRadius } = params;
 
-	const centerPos = Number(size) / 2;
+	const sizeParsed = parseValueWithUnit(size!);
+	const centerPos = sizeParsed.valueInMM / 2;
 
 	return tools.json({
 		operation: 'subtract',

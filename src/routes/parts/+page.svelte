@@ -7,7 +7,6 @@
 	import { toolList } from '$lib/jscad/tools';
 	import { shapeList } from '$lib/jscad/shapes';
 	import { addGrid, renderGeometry, enablePanZoom } from '$lib/jscad/2dCanvas';
-	import { setUnitConfig, type Unit, unitsList } from '$lib/jscad/units';
 	import { setup3DCanvas, render3DGeometry } from '$lib/jscad/3dCanvas';
 	import * as THREE from 'three';
 	import { fileExports } from '$lib/jscad/fileExports';
@@ -18,9 +17,6 @@
 	let fabricCanvas: Canvas;
 	let currentPartId = 'mixedUnits';
 	let geometry = parts.mixedUnits();
-	let selectedUnit: Unit = 'mm';
-	let gridSpacing = 10;
-	let showConfig = false;
 	let extrusionHeight = 5; // mm
 	let currentZoom = 1;
 	let panX = 400;
@@ -43,13 +39,6 @@
 				setter: (v: string) => {
 					currentPartId = v;
 					geometry = parts[v as keyof typeof parts]();
-				}
-			},
-			{
-				key: 'unit',
-				validator: (s: string) => (unitsList.includes(s as Unit) ? (s as Unit) : null),
-				setter: (v: Unit) => {
-					selectedUnit = v;
 				}
 			},
 			{
@@ -110,7 +99,6 @@
 	function updateUrl() {
 		const url = new URL(window.location.href);
 		url.searchParams.set('part', currentPartId);
-		url.searchParams.set('unit', selectedUnit);
 		url.searchParams.set('height', extrusionHeight.toString());
 		window.history.replaceState({}, '', url.toString());
 	}
@@ -174,16 +162,6 @@
 			resizeObserver.disconnect();
 		};
 	});
-
-	function updateUnitConfig() {
-		setUnitConfig({
-			defaultUnit: selectedUnit,
-			gridSpacing: gridSpacing
-		});
-		if (fabricCanvas) {
-			addGrid(fabricCanvas);
-		}
-	}
 
 	function refreshGeometry() {
 		if (fabricCanvas) {
@@ -252,22 +230,6 @@
 		<h2>shapes</h2>
 		{#each shapeList as shape}
 			<p>{shape.name}</p>
-		{/each}
-
-		<h2>units</h2>
-		{#each unitsList as unit}
-			<p
-				class:active={selectedUnit === unit}
-				on:click={() => {
-					selectedUnit = unit;
-					updateUnitConfig();
-				}}
-				on:keypress={(e) => e.key === 'Enter' && ((selectedUnit = unit), updateUnitConfig())}
-				role="button"
-				tabindex="0"
-			>
-				{unit}
-			</p>
 		{/each}
 	</div>
 
