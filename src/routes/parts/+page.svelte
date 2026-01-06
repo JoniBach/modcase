@@ -17,6 +17,7 @@
 
 	let canvasEl: HTMLCanvasElement;
 	let canvas3d: HTMLCanvasElement;
+	let view2d: HTMLElement;
 	let fabricCanvas: Canvas;
 	let currentPartId = 'mixedUnits';
 	let geometry = parts.mixedUnits();
@@ -106,6 +107,9 @@
 			selection: false
 		});
 
+		// Set initial canvas size
+		fabricCanvas.setDimensions({ width: view2d.clientWidth, height: view2d.clientHeight });
+
 		// Add grid
 		addGrid(fabricCanvas);
 
@@ -138,8 +142,13 @@
 			if (updateSize) {
 				updateSize(canvas3d.clientWidth, canvas3d.clientHeight);
 			}
+			if (fabricCanvas) {
+				fabricCanvas.setDimensions({ width: view2d.clientWidth, height: view2d.clientHeight });
+				addGrid(fabricCanvas);
+			}
 		});
 		resizeObserver.observe(canvas3d);
+		resizeObserver.observe(view2d);
 
 		return () => {
 			fabricCanvas.dispose();
@@ -266,7 +275,7 @@
 	</div>
 
 	<div class="content">
-		<div class="view-2d">
+		<div class="view-2d" bind:this={view2d}>
 			<canvas bind:this={canvasEl} width="800" height="800"></canvas>
 		</div>
 		<div class="view-3d">
@@ -311,11 +320,13 @@
 		height: calc(100vh - 100px);
 		position: relative;
 		display: flex;
+		flex-direction: row;
 	}
 
 	.view-2d,
 	.view-3d {
 		position: relative;
+		flex: 1;
 	}
 
 	.view-2d canvas {
