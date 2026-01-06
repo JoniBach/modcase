@@ -8,6 +8,7 @@ export interface ThreeSetup {
 	renderer: THREE.WebGLRenderer;
 	controls: OrbitControls;
 	animate: () => void;
+	updateSize: (width: number, height: number) => void;
 }
 
 export function setup3DCanvas(canvas: HTMLCanvasElement): ThreeSetup {
@@ -23,6 +24,21 @@ export function setup3DCanvas(canvas: HTMLCanvasElement): ThreeSetup {
 	const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 	renderer.setSize(canvas.clientWidth, canvas.clientHeight);
 
+	// Camera update function
+	const updateSize = (width: number, height: number) => {
+		renderer.setSize(width, height);
+		const aspect = width / height;
+		const frustumSize = 50; // Vertical half-size
+		(camera as THREE.OrthographicCamera).left = -aspect * frustumSize;
+		(camera as THREE.OrthographicCamera).right = aspect * frustumSize;
+		(camera as THREE.OrthographicCamera).top = frustumSize;
+		(camera as THREE.OrthographicCamera).bottom = -frustumSize;
+		(camera as THREE.OrthographicCamera).updateProjectionMatrix();
+	};
+
+	// Initial camera setup
+	updateSize(canvas.clientWidth, canvas.clientHeight);
+
 	// Controls
 	const controls = new OrbitControls(camera, canvas);
 
@@ -37,17 +53,16 @@ export function setup3DCanvas(canvas: HTMLCanvasElement): ThreeSetup {
 		renderer.render(scene, camera);
 	}
 
-	return { scene, camera, renderer, controls, animate };
+	return { scene, camera, renderer, controls, animate, updateSize };
 }
 
-export function render3DGeometry(scene: THREE.Scene, geom: any, extrusionHeight: number) {
-	// Remove existing meshes
-	const meshes = scene.children.filter((child) => child instanceof THREE.Mesh) as THREE.Mesh[];
-	meshes.forEach((mesh) => {
-		scene.remove(mesh);
-		mesh.geometry.dispose();
-		(mesh.material as THREE.Material).dispose();
-	});
+export function render3DGeometry(scene: THREE.Scene, geom: unknown, extrusionHeight: number) {
+	// Clear the scene completely
+	scene.clear();
+
+	// Re-add lighting
+	const ambientLight = new THREE.AmbientLight(0x404040, 1);
+	scene.add(ambientLight);
 
 	// Extrude to 3D and convert to Three.js
 	const threeGeometry = extrudeToThree(geom, extrusionHeight);

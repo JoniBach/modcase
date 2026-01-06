@@ -3,6 +3,8 @@ import type { TPointerEventInfo, TPointerEvent, WheelEvent } from 'fabric';
 import { serializeToSvg } from '$lib/utils/svgSerializer';
 import { getUnitConfig, formatValue } from './units';
 
+let renderVersion = 0;
+
 export const addGrid = (canvas: Canvas) => {
 	const zoom = canvas.getZoom();
 	const config = getUnitConfig();
@@ -79,10 +81,14 @@ export const addGrid = (canvas: Canvas) => {
 };
 
 export const renderGeometry = (canvas: Canvas, geom: any) => {
+	renderVersion++;
+	const myVersion = renderVersion;
+
 	// Clear existing geometry
 	canvas.getObjects().forEach((obj: any) => {
 		if (!obj.isGrid) canvas.remove(obj);
 	});
+	canvas.renderAll(); // Immediately render the cleared state
 
 	// Serialize geometry to SVG
 	const svgString = serializeToSvg(geom);
@@ -90,6 +96,8 @@ export const renderGeometry = (canvas: Canvas, geom: any) => {
 	// Load SVG into fabric
 	loadSVGFromString(svgString)
 		.then((result: any) => {
+			if (renderVersion !== myVersion) return; // Ignore if a newer render started
+
 			const config = getUnitConfig();
 			const scaleFactor = 50 / config.gridSpacing;
 			result.objects.forEach((obj: any) => {
@@ -107,6 +115,8 @@ export const renderGeometry = (canvas: Canvas, geom: any) => {
 			canvas.renderAll();
 		})
 		.catch((error: any) => {
+			if (renderVersion !== myVersion) return; // Ignore if a newer render started
+
 			console.error('Error loading SVG:', error);
 			// Fallback to simple shape
 			const shape = new Rect({
@@ -160,7 +170,7 @@ export const enablePanZoom = (canvas: Canvas) => {
 		const delta = opt.e.deltaY;
 		let zoom = canvas.getZoom();
 		zoom *= 0.999 ** delta;
-		zoom = Math.min(Math.max(0.1, zoom), 20);
+		zoom = Math.max(0.1, zoom);
 		canvas.zoomToPoint(new Point(opt.e.offsetX, opt.e.offsetY), zoom);
 		opt.e.preventDefault();
 		opt.e.stopPropagation();

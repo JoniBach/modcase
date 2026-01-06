@@ -3,7 +3,6 @@ import pkg from '@jscad/modeling';
 import { z } from 'zod';
 
 import { shapes } from './shapes';
-import type { Unit } from './units';
 import type { AnchorValue } from './anchors';
 import { resolveAllPositions, type ResolvedPosition } from './positioning';
 
@@ -77,7 +76,7 @@ const shapeParamsSchema = z.object({
 });
 
 const shapeNodeSchema = z.object({
-	shape: z.enum(['rectangle', 'circle', 'polygon', 'path', 'trapezoidX', 'trapezoidY']),
+	shape: z.enum(['rectangle', 'circle', 'polygon', 'path', 'trapezoidX', 'trapezoidY', 'ref']),
 	params: shapeParamsSchema,
 	id: z.string().optional(),
 	unit: z.enum(['mm', 'cm', 'm', 'in', 'ft']).optional(),
@@ -122,6 +121,18 @@ function buildGeometry(
 		let yPos = params.y ?? 0;
 		let positionUnit = shapeUnit;
 
+		// Resolve position references
+		if (typeof xPos === 'string' && resolvedPositions?.has(xPos)) {
+			const resolved = resolvedPositions.get(xPos)!;
+			xPos = resolved.x;
+			positionUnit = 'mm'; // Resolved positions are always in MM
+		}
+		if (typeof yPos === 'string' && resolvedPositions?.has(yPos)) {
+			const resolved = resolvedPositions.get(yPos)!;
+			yPos = resolved.y;
+			positionUnit = 'mm'; // Resolved positions are always in MM
+		}
+
 		if (id && resolvedPositions?.has(id)) {
 			const resolved = resolvedPositions.get(id)!;
 			xPos = resolved.x;
@@ -164,6 +175,14 @@ function buildGeometry(
 				leftHeight: params.leftHeight,
 				rightHeight: params.rightHeight,
 				width: params.width,
+				x: xPos,
+				y: yPos,
+				id,
+				unit: positionUnit,
+				anchor: shapeAnchor
+			});
+		} else if (shape === 'ref') {
+			return shapes.ref({
 				x: xPos,
 				y: yPos,
 				id,

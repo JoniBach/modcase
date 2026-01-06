@@ -292,6 +292,179 @@ export const extrusion2020 = () => {
 	return pattern.extrusion(params);
 };
 
+export const atxPlate = () =>
+	tools.json({
+		operation: 'subtract',
+		ops: [
+			{
+				shape: 'rectangle',
+				params: { width: '304.8mm', height: '243.84mm', x: '0', y: '0' },
+				id: 'atx',
+				anchor: { x: 0, y: 0 },
+				unit: 'mm'
+			},
+			// rows
+			{
+				shape: 'ref',
+				params: { x: 0, y: 10.16 },
+				id: 'row-1',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 0, y: 33.02 },
+				id: 'row-2',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 0, y: 165.1 },
+				id: 'row-3',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 0, y: 237.49 },
+				id: 'row-4',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			// columns
+			{
+				shape: 'ref',
+				params: { x: 6.35, y: 0 },
+				id: 'col-1',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 163.83, y: 0 },
+				id: 'col-2',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 209.55, y: 0 },
+				id: 'col-3',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 229.87, y: 0 },
+				id: 'col-4',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			{
+				shape: 'ref',
+				params: { x: 288.29, y: 0 },
+				id: 'col-5',
+				unit: 'mm',
+				relativeTo: 'atx',
+				anchor: 'center'
+			},
+			// holes
+			{
+				shape: 'circle',
+				params: { radius: '2', x: 'col-2', y: 'row-1' },
+				id: 'hole-2-1',
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '2', x: 'col-3', y: 'row-1' },
+				id: 'hole-3-1',
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				params: { radius: '2', x: 'col-5', y: 'row-1' },
+				id: 'hole-5-1',
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-1-2',
+				params: { radius: '2', x: 'col-1', y: 'row-2' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-1-3',
+				params: { radius: '2', x: 'col-1', y: 'row-3' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-2-3',
+				params: { radius: '2', x: 'col-2', y: 'row-3' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-3-3',
+				params: { radius: '2', x: 'col-3', y: 'row-3' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-4-3',
+				params: { radius: '2', x: 'col-4', y: 'row-3' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-5-3',
+				params: { radius: '2', x: 'col-5', y: 'row-3' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-1-4',
+				params: { radius: '2', x: 'col-1', y: 'row-4' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-2-4',
+				params: { radius: '2', x: 'col-2', y: 'row-4' },
+				unit: 'mm',
+				anchor: 'center'
+			},
+			{
+				shape: 'circle',
+				id: 'hole-5-4',
+				params: { radius: '2', x: 'col-5', y: 'row-4' },
+				unit: 'mm',
+				anchor: 'center'
+			}
+		]
+	});
+
 export const parts = {
 	ioPlate,
 	basePlate,
@@ -307,7 +480,8 @@ export const parts = {
 	relativeChain,
 	mixedPositioning,
 	extrusion2020,
-	squareWithHoles
+	squareWithHoles,
+	atxPlate
 };
 
 export const partList = [
@@ -370,5 +544,9 @@ export const partList = [
 	{
 		id: 'squareWithHoles',
 		name: '40x40 Square with Holes'
+	},
+	{
+		id: 'atxPlate',
+		name: 'ATX Plate'
 	}
 ];

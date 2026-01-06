@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { get } from 'svelte/store';
-	import { Canvas } from 'fabric';
+	import { Canvas, Point } from 'fabric';
 	import { partList, parts } from '$lib/jscad/parts';
 	import { toolList } from '$lib/jscad/tools';
 	import { shapeList } from '$lib/jscad/shapes';
@@ -24,10 +24,14 @@
 	let gridSpacing = 10;
 	let showConfig = false;
 	let extrusionHeight = 5; // mm
+	let currentZoom = 1;
+	let panX = 400;
+	let panY = 400;
 
 	// 3D variables
 	let scene: THREE.Scene;
 	let renderer: THREE.WebGLRenderer;
+	let updateSize: (width: number, height: number) => void;
 
 	// Initialize from URL parameters
 	function initializeFromUrl() {
@@ -54,6 +58,33 @@
 				extrusionHeight = h;
 			}
 		}
+
+		// Load zoom from URL
+		const zoomParam = urlParams.get('zoom');
+		if (zoomParam) {
+			const z = parseFloat(zoomParam);
+			if (!isNaN(z) && z >= 0.1) {
+				currentZoom = z;
+			}
+		}
+
+		// Load panX from URL
+		const panXParam = urlParams.get('panX');
+		if (panXParam) {
+			const x = parseFloat(panXParam);
+			if (!isNaN(x)) {
+				panX = x;
+			}
+		}
+
+		// Load panY from URL
+		const panYParam = urlParams.get('panY');
+		if (panYParam) {
+			const y = parseFloat(panYParam);
+			if (!isNaN(y)) {
+				panY = y;
+			}
+		}
 	}
 
 	// Update URL with current parameters
@@ -75,12 +106,6 @@
 			selection: false
 		});
 
-		// Center the canvas at 0,0
-		const vpt = fabricCanvas.viewportTransform;
-		vpt[4] = fabricCanvas.width / 2;
-		vpt[5] = fabricCanvas.height / 2;
-		fabricCanvas.requestRenderAll();
-
 		// Add grid
 		addGrid(fabricCanvas);
 
@@ -90,15 +115,36 @@
 		// Enable pan and zoom
 		enablePanZoom(fabricCanvas);
 
+		// Apply initial zoom and pan from URL
+		fabricCanvas.setViewportTransform([
+			currentZoom,
+			0,
+			0,
+			currentZoom,
+			fabricCanvas.width / 2 - panX * currentZoom,
+			fabricCanvas.height / 2 - panY * currentZoom
+		]);
+		addGrid(fabricCanvas);
+
 		// 3D setup
-		const { scene: s, renderer: r, animate } = setup3DCanvas(canvas3d);
+		const { scene: s, renderer: r, animate, updateSize: us } = setup3DCanvas(canvas3d);
 		scene = s;
 		renderer = r;
+		updateSize = us;
 		animate();
+
+		// Handle canvas resize
+		const resizeObserver = new ResizeObserver(() => {
+			if (updateSize) {
+				updateSize(canvas3d.clientWidth, canvas3d.clientHeight);
+			}
+		});
+		resizeObserver.observe(canvas3d);
 
 		return () => {
 			fabricCanvas.dispose();
 			if (renderer) renderer.dispose();
+			resizeObserver.disconnect();
 		};
 	});
 
@@ -132,7 +178,7 @@
 	function handleExport() {
 		if (!scene) return;
 		const meshes = scene.children.filter(
-			(child) => child instanceof THREE.Mesh && !(child.material as THREE.Material).wireframe
+			(child) => child instanceof THREE.Mesh && !(child.material as any).wireframe
 		) as THREE.Mesh[];
 		if (meshes.length === 0) return;
 		const group = new THREE.Group();
@@ -221,7 +267,7 @@
 
 	<div class="content">
 		<div class="view-2d">
-			<canvas bind:this={canvasEl} width="400" height="400"></canvas>
+			<canvas bind:this={canvasEl} width="800" height="800"></canvas>
 		</div>
 		<div class="view-3d">
 			<canvas bind:this={canvas3d}></canvas>

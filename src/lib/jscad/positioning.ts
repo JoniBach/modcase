@@ -54,8 +54,31 @@ export function resolvePosition(
 	}
 
 	if (!shape.relativeTo) {
-		const xParsed = parseValueWithUnit(shape.params.x ?? 0, shapeUnit as Unit | undefined);
-		const yParsed = parseValueWithUnit(shape.params.y ?? 0, shapeUnit as Unit | undefined);
+		let xValue = shape.params.x ?? 0;
+		let yValue = shape.params.y ?? 0;
+
+		// Resolve references in params
+		if (typeof xValue === 'string' && shapesMap.has(xValue)) {
+			const refPos = resolvePosition(
+				shapesMap.get(xValue)!,
+				shapesMap,
+				resolvedCache,
+				visitedChain
+			);
+			xValue = refPos.x;
+		}
+		if (typeof yValue === 'string' && shapesMap.has(yValue)) {
+			const refPos = resolvePosition(
+				shapesMap.get(yValue)!,
+				shapesMap,
+				resolvedCache,
+				visitedChain
+			);
+			yValue = refPos.y;
+		}
+
+		const xParsed = parseValueWithUnit(xValue, shapeUnit as Unit | undefined);
+		const yParsed = parseValueWithUnit(yValue, shapeUnit as Unit | undefined);
 		const absolutePos = {
 			x: xParsed.valueInMM,
 			y: yParsed.valueInMM
@@ -74,8 +97,31 @@ export function resolvePosition(
 		shapeId
 	]);
 
-	const offsetXParsed = parseValueWithUnit(shape.params.x ?? 0, shapeUnit as Unit | undefined);
-	const offsetYParsed = parseValueWithUnit(shape.params.y ?? 0, shapeUnit as Unit | undefined);
+	let offsetXValue = shape.params.x ?? 0;
+	let offsetYValue = shape.params.y ?? 0;
+
+	// Resolve references in params
+	if (typeof offsetXValue === 'string' && shapesMap.has(offsetXValue)) {
+		const refPos = resolvePosition(
+			shapesMap.get(offsetXValue)!,
+			shapesMap,
+			resolvedCache,
+			visitedChain
+		);
+		offsetXValue = refPos.x;
+	}
+	if (typeof offsetYValue === 'string' && shapesMap.has(offsetYValue)) {
+		const refPos = resolvePosition(
+			shapesMap.get(offsetYValue)!,
+			shapesMap,
+			resolvedCache,
+			visitedChain
+		);
+		offsetYValue = refPos.y;
+	}
+
+	const offsetXParsed = parseValueWithUnit(offsetXValue, shapeUnit as Unit | undefined);
+	const offsetYParsed = parseValueWithUnit(offsetYValue, shapeUnit as Unit | undefined);
 
 	const absolutePos = {
 		x: referencePos.x + offsetXParsed.valueInMM,

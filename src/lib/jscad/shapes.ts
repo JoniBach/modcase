@@ -196,11 +196,22 @@ export const trapezoidX = (params: {
 	return id ? { id, geometry: geom } : geom;
 };
 
+export const ref = (params: {
+	x?: number | string;
+	y?: number | string;
+	id?: string;
+	unit?: Unit;
+	anchor?: AnchorValue;
+}) => {
+	return circle({ radius: 0, ...params });
+};
+
 export const shapes = {
 	rectangle,
 	circle,
 	trapezoidX,
-	trapezoidY
+	trapezoidY,
+	ref
 };
 
 export const shapeList = [
@@ -219,5 +230,9 @@ export const shapeList = [
 	{
 		id: 'trapezoidY',
 		name: 'Trapezoid Y'
+	},
+	{
+		id: 'ref',
+		name: 'Reference'
 	}
 ];
