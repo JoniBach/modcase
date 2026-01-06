@@ -8,14 +8,7 @@ const extrusion = (params: {
 	webDepth?: string;
 	boreRadius?: string;
 }) => {
-	const {
-		size = '20',
-		outerSlotWidth = '11',
-		innerCavityWidth = '7.2',
-		wallThickness = '1.8',
-		webDepth = '2',
-		boreRadius = '3'
-	} = params;
+	const { size, outerSlotWidth, innerCavityWidth, wallThickness, webDepth, boreRadius } = params;
 
 	const centerPos = Number(size) / 2;
 

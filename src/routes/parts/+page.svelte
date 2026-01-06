@@ -164,6 +164,23 @@
 	</div>
 
 	<div class="menu">
+		<h2>export</h2>
+		<p
+			on:click={handleExport}
+			on:keypress={(e) => e.key === 'Enter' && handleExport()}
+			role="button"
+			tabindex="0"
+		>
+			STL
+		</p>
+		<p
+			on:click={handleSvgExport}
+			on:keypress={(e) => e.key === 'Enter' && handleSvgExport()}
+			role="button"
+			tabindex="0"
+		>
+			SVG
+		</p>
 		<h2>parts</h2>
 		{#each partList as part}
 			<p
@@ -204,26 +221,10 @@
 
 	<div class="content">
 		<div class="view-2d">
-			<canvas bind:this={canvasEl} width="800" height="600"></canvas>
-			<div class="controls">
-				<small>Scroll to zoom • Alt+drag to pan</small>
-				<button class="export-svg-button" on:click={handleSvgExport}>Export SVG</button>
-			</div>
+			<canvas bind:this={canvasEl} width="400" height="400"></canvas>
 		</div>
 		<div class="view-3d">
 			<canvas bind:this={canvas3d}></canvas>
-			<div class="controls-3d">
-				<label for="height-slider">Extrusion Height: {extrusionHeight}mm</label>
-				<input
-					id="height-slider"
-					type="range"
-					min="1"
-					max="20"
-					step="0.5"
-					bind:value={extrusionHeight}
-				/>
-				<button class="export-button" on:click={handleExport}>Export STL</button>
-			</div>
 		</div>
 	</div>
 </div>
@@ -244,81 +245,6 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-	}
-
-	.config-btn {
-		background-color: #555;
-		color: #fff;
-		border: none;
-		padding: 8px 16px;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 14px;
-	}
-
-	.config-btn:hover {
-		background-color: #666;
-	}
-
-	.config-panel {
-		width: 100%;
-		background-color: #444;
-		padding: 15px;
-		border-bottom: 2px solid #555;
-	}
-
-	.config-panel h3 {
-		color: #fff;
-		margin-top: 0;
-		margin-bottom: 15px;
-		font-size: 16px;
-	}
-
-	.config-row {
-		display: flex;
-		align-items: center;
-		gap: 10px;
-		margin-bottom: 10px;
-	}
-
-	.config-row label {
-		color: #ccc;
-		min-width: 120px;
-		font-size: 14px;
-	}
-
-	.config-row select,
-	.config-row input {
-		background-color: #555;
-		color: #fff;
-		border: 1px solid #666;
-		padding: 6px 10px;
-		border-radius: 4px;
-		font-size: 14px;
-	}
-
-	.config-row input[type='number'] {
-		width: 80px;
-	}
-
-	.unit-label {
-		color: #aaa;
-		font-size: 14px;
-	}
-
-	.refresh-btn {
-		background-color: #4a9eff;
-		color: #fff;
-		border: none;
-		padding: 8px 16px;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 14px;
-		margin-top: 10px;
-	}
-
-	.refresh-btn:hover {
-		background-color: #5aafff;
 	}
 
 	.menu {
@@ -343,7 +269,6 @@
 
 	.view-2d,
 	.view-3d {
-		flex: 1;
 		position: relative;
 	}
 
@@ -355,63 +280,6 @@
 	.view-3d canvas {
 		width: 100%;
 		height: 100%;
-	}
-
-	.controls-3d {
-		position: absolute;
-		bottom: 15px;
-		left: 15px;
-		color: #ccc;
-		background-color: rgba(0, 0, 0, 0.5);
-		padding: 10px;
-		border-radius: 4px;
-		min-width: 200px;
-	}
-
-	.controls-3d label {
-		display: block;
-		font-size: 14px;
-		margin-bottom: 5px;
-	}
-
-	.controls-3d input[type='range'] {
-		width: 100%;
-		background-color: #555;
-		border: 1px solid #666;
-		border-radius: 4px;
-		height: 6px;
-		-webkit-appearance: none;
-		appearance: none;
-	}
-
-	.export-button {
-		background-color: #4a9eff;
-		color: #fff;
-		border: none;
-		padding: 8px 16px;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 14px;
-		margin-top: 10px;
-	}
-
-	.export-button:hover {
-		background-color: #5aafff;
-	}
-
-	.export-svg-button {
-		background-color: #10b981;
-		color: #fff;
-		border: none;
-		padding: 6px 12px;
-		border-radius: 4px;
-		cursor: pointer;
-		font-size: 12px;
-		margin-left: 10px;
-	}
-
-	.export-svg-button:hover {
-		background-color: #059669;
 	}
 
 	h1 {
